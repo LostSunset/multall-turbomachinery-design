@@ -32,9 +32,9 @@ multall = "multall_turbomachinery_design.cli:main"
 multall-gui = "multall_turbomachinery_design.ui:main"
 
 [project.optional-dependencies]
-# CAD 功能需要 Python 3.12（CadQuery 尚未支援 Python 3.13+）
+# CAD 功能需要 Python 3.12 或 3.13（CadQuery 尚未支援 Python 3.14+）
 cad = [
-    "cadquery>=2.4.0",
+    "cadquery>=2.4.0; python_version < '3.14'",
 ]
 # 蒸汽性質計算
 steam = [
