@@ -110,9 +110,20 @@
 - ✅ 收斂歷史繪圖（ConvergencePlotter - 殘差、性能、各級對比）
 - ✅ 便捷函數（plot_velocity_triangle, plot_blade_profile, plot_contour 等）
 
+### CLI - 命令行介面 ✅ 完成
+
+- ✅ 主命令（multall）
+- ✅ 系統資訊（multall info）
+- ✅ 平均線設計（multall meangen）
+- ✅ 葉片幾何生成（multall stagen）
+- ✅ 視覺化繪圖（multall plot）
+- ✅ 圖形介面啟動（multall gui）
+- ✅ 文件驗證（multall validate）
+- ✅ JSON 配置文件支援
+
 ### 測試與覆蓋率
 
-- ✅ 318 個測試，全部通過
+- ✅ 341 個測試，全部通過
 - ✅ 74% 程式碼覆蓋率
 - ✅ CI/CD 自動化
 

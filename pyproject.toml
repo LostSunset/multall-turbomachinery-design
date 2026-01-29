@@ -23,6 +23,12 @@ dependencies = [
     "matplotlib>=3.10.0",
 ]
 
+[project.scripts]
+multall = "multall_turbomachinery_design.cli:main"
+
+[project.gui-scripts]
+multall-gui = "multall_turbomachinery_design.ui:main"
+
 [project.optional-dependencies]
 # CAD 依賴暫時禁用，因為 CadQuery 尚未支援 Python 3.14
 # 當 CadQuery 發布支援 Python 3.14 的版本後，取消下面的註釋：

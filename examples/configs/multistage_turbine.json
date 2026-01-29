@@ -1,0 +1,40 @@
+{
+  "machine_type": "TURBINE",
+  "flow_type": "AXIAL",
+  "nstages": 3,
+  "rpm": 8000.0,
+  "mass_flow": 15.0,
+  "design_radius": 0.35,
+  "gas": {
+    "gamma": 1.33,
+    "rgas": 287.05,
+    "poin": 4.0,
+    "toin": 1400.0
+  },
+  "stages": [
+    {
+      "stage_number": 1,
+      "input_type": "TYPE_A",
+      "phi": 0.65,
+      "psi": 2.2,
+      "reaction": 0.45,
+      "efficiency": 0.91
+    },
+    {
+      "stage_number": 2,
+      "input_type": "TYPE_A",
+      "phi": 0.60,
+      "psi": 2.0,
+      "reaction": 0.50,
+      "efficiency": 0.90
+    },
+    {
+      "stage_number": 3,
+      "input_type": "TYPE_A",
+      "phi": 0.55,
+      "psi": 1.8,
+      "reaction": 0.55,
+      "efficiency": 0.89
+    }
+  ]
+}

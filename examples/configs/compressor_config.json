@@ -1,0 +1,24 @@
+{
+  "machine_type": "COMPRESSOR",
+  "flow_type": "AXIAL",
+  "nstages": 1,
+  "rpm": 15000.0,
+  "mass_flow": 5.0,
+  "design_radius": 0.2,
+  "gas": {
+    "gamma": 1.4,
+    "rgas": 287.05,
+    "poin": 1.0,
+    "toin": 288.0
+  },
+  "stages": [
+    {
+      "stage_number": 1,
+      "input_type": "TYPE_A",
+      "phi": 0.5,
+      "psi": 0.4,
+      "reaction": 0.5,
+      "efficiency": 0.88
+    }
+  ]
+}
