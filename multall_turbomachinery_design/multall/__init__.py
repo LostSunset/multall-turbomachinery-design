@@ -39,6 +39,14 @@ from .gas_properties import (
     create_air_calculator,
     create_combustion_gas_calculator,
 )
+from .inverse_design import (
+    BladeDesignSection,
+    BladeRedesigner,
+    InverseDesignParameters,
+    InverseDesignResult,
+    InverseDesignSolver,
+    InverseDesignType,
+)
 from .io_handler import (
     MultallFileHandler,
     MultallInputReader,
@@ -112,4 +120,11 @@ __all__ = [
     "MixingPlaneInterface",
     "MixingPlaneType",
     "NonReflectingBoundary",
+    # 逆向設計
+    "InverseDesignType",
+    "InverseDesignParameters",
+    "InverseDesignResult",
+    "InverseDesignSolver",
+    "BladeRedesigner",
+    "BladeDesignSection",
 ]
