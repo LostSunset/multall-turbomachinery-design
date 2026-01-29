@@ -26,6 +26,7 @@ from .data_structures import (
 from .grid_generator import GridGenerator
 from .io_handler import StagenFileHandler, StagenInputReader, StagenOutputWriter
 from .projection import StreamSurfaceProjector
+from .solver import StagenSolver, create_simple_blade_row
 
 __all__ = [
     "BladeProfileGenerator",
@@ -34,6 +35,8 @@ __all__ = [
     "StagenInputReader",
     "StagenOutputWriter",
     "StagenFileHandler",
+    "StagenSolver",
+    "create_simple_blade_row",
     "BladeInputType",
     "BladeProfile2D",
     "StreamSurface3D",
