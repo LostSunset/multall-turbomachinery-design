@@ -44,6 +44,12 @@ from .io_handler import (
     MultallInputReader,
     MultallOutputWriter,
 )
+from .mixing_plane import (
+    MixingPlaneInterface,
+    MixingPlaneModel,
+    MixingPlaneType,
+    NonReflectingBoundary,
+)
 from .solver import (
     MultallSolver,
     create_simple_turbine_solver,
@@ -101,4 +107,9 @@ __all__ = [
     "SpalartAllmarasModel",
     "ViscousFluxCalculator",
     "WallDistanceCalculator",
+    # 混合平面模型
+    "MixingPlaneModel",
+    "MixingPlaneInterface",
+    "MixingPlaneType",
+    "NonReflectingBoundary",
 ]
