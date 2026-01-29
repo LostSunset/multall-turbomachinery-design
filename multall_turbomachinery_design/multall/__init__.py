@@ -53,6 +53,12 @@ from .time_stepping import (
     TimeStepMethod,
     TimeStepper,
 )
+from .viscous import (
+    MixingLengthModel,
+    SpalartAllmarasModel,
+    ViscousFluxCalculator,
+    WallDistanceCalculator,
+)
 
 __all__ = [
     # 數據結構
@@ -90,4 +96,9 @@ __all__ = [
     "TimeStepper",
     "TimeStepMethod",
     "ConvergenceMonitor",
+    # 黏性模型
+    "MixingLengthModel",
+    "SpalartAllmarasModel",
+    "ViscousFluxCalculator",
+    "WallDistanceCalculator",
 ]
