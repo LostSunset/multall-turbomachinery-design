@@ -24,9 +24,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-cad = [
-    "cadquery>=2.4.0",  # 3D CAD 建模（待 Python 3.14 支援）
-]
+# CAD 依賴暫時禁用，因為 CadQuery 尚未支援 Python 3.14
+# 當 CadQuery 發布支援 Python 3.14 的版本後，取消下面的註釋：
+# cad = [
+#     "cadquery>=2.4.0",
+# ]
 dev = [
     "pytest>=8.3.0",
     "pytest-cov>=6.0.0",
