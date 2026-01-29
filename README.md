@@ -142,12 +142,12 @@ git clone https://github.com/LostSunset/multall-turbomachinery-design.git
 cd multall-turbomachinery-design
 
 # 使用 uv 創建虛擬環境
-uv venv .venv --python 3.12  # 或 3.13, 3.14
+uv venv .venv312 --python 3.12  # 或 3.13, 3.14
 
 # 啟動虛擬環境
-source .venv/bin/activate   # Linux/Mac
+source .venv312/bin/activate   # Linux/Mac
 # 或
-.venv\Scripts\activate      # Windows
+.venv312\Scripts\activate      # Windows
 
 # 安裝依賴
 uv pip install -e ".[dev]"
@@ -156,6 +156,21 @@ uv pip install -e ".[dev]"
 uv pip install -e ".[cad]"    # CAD 輸出（需 Python 3.12/3.13）
 uv pip install -e ".[steam]"  # IAPWS-IF97 蒸汽性質
 ```
+
+### 啟動圖形介面
+
+```bash
+# 方式一：使用命令行
+multall gui
+
+# 方式二：使用 Python 模組
+python -m multall_turbomachinery_design.ui
+```
+
+**功能面板：**
+- **MEANGEN** - 平均線設計：設定機器參數 → 運行計算 → 查看速度三角形 → 輸出檔案
+- **STAGEN** - 葉片幾何：設定葉片參數 → 生成幾何 → 輸出 CAD (STEP/STL/IGES)
+- **MULTALL** - 3D 求解器：載入網格 → 設定邊界條件 → 開始求解
 
 ### 執行示例
 
