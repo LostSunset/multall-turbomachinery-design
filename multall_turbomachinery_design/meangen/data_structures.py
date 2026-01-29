@@ -128,6 +128,31 @@ class StageDesign:
     dho: float = 0.0  # 焓變 [J/kg]
     dho_is: float = 0.0  # 等熵焓變 [J/kg]
 
+    # 輸入類型和角度
+    input_type: InputType = InputType.TYPE_A  # 輸入類型
+    alpha_in: float = 0.0  # 進口絕對角 [度]（Type B）
+    alpha_out: float = 0.0  # 出口絕對角 [度]（Type B）
+    beta_in: float = 0.0  # 進口相對角 [度]（Type B）
+    beta_out: float = 0.0  # 出口相對角 [度]（Type B）
+
+    # 幾何參數
+    axial_chord_1: float | None = None  # 轉子軸向弦長 [m]
+    axial_chord_2: float | None = None  # 定子軸向弦長 [m]
+    row_gap: float | None = None  # 行間隙 [m]
+    stage_gap: float | None = None  # 級間隙 [m]
+
+    # 偏差和入射角
+    ainc1: float | None = None  # 轉子入射角 [度]
+    ainc2: float | None = None  # 定子入射角 [度]
+    devn1: float | None = None  # 轉子偏角 [度]
+    devn2: float | None = None  # 定子偏角 [度]
+
+    # 性能輸出
+    work_output: float = 0.0  # 比功 [J/kg]
+    loading_coefficient: float = 0.0  # 負荷係數
+    inlet_triangle: VelocityTriangle | None = None  # 進口速度三角形
+    outlet_triangle: VelocityTriangle | None = None  # 出口速度三角形
+
     # 葉片排
     rotor: BladeRow | None = None  # 轉子
     stator: BladeRow | None = None  # 定子
@@ -136,6 +161,7 @@ class StageDesign:
     hub_surface: StreamSurface | None = None  # 轂部流表面
     tip_surface: StreamSurface | None = None  # 葉尖流表面
     mean_surface: StreamSurface | None = None  # 平均流表面
+    stream_surface: StreamSurface | None = None  # 設計點流表面
 
     # 堵塞因子 (v17.4)
     fblock_le: float = 0.0  # 前緣堵塞因子
