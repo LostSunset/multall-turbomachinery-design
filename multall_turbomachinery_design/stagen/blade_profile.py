@@ -10,7 +10,7 @@ import math
 
 import numpy as np
 
-from .data_structures import BladeProfile2D, STAGEN_CONSTANTS, ThicknessParameters
+from .data_structures import STAGEN_CONSTANTS, BladeProfile2D, ThicknessParameters
 
 
 class BladeProfileGenerator:
@@ -224,7 +224,7 @@ class BladeProfileGenerator:
             平滑後的 Y 值列表
         """
         y = np.array(y_values, dtype=float)
-        n = len(y)
+        len(y)
 
         for _ in range(n_smooth):
             # 計算平均值

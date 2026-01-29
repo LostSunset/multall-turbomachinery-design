@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from multall_turbomachinery_design.stagen.data_structures import (
     BladeInputType,
     BladeProfile2D,
