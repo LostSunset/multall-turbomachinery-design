@@ -70,6 +70,7 @@ Thumbs.db
 !tests/fixtures/*.out
 
 # Original FORTRAN source (reference only, keep in separate directory)
+multall-open_20260120/
 multall-open_20260120.zip
 
 # Ruff
