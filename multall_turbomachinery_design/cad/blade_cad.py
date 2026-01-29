@@ -130,26 +130,48 @@ class BladeCADExporter:
         # 按跨向位置排序
         sections = sorted(sections, key=lambda s: s.span_fraction)
 
-        # 創建截面線框
-        wires = []
-        for section in sections:
-            wire = self._create_section_wire(section)
-            wires.append(wire)
-
         # 放樣生成實體
         try:
-            if self.config.loft_ruled:
-                # 直紋面放樣
-                self._blade = cq.Workplane("XY").add(wires[0])
-                for wire in wires[1:]:
-                    self._blade = self._blade.add(wire)
-                self._blade = self._blade.loft(ruled=True)
-            else:
-                # 平滑放樣
-                self._blade = cq.Workplane("XY").add(wires[0])
-                for wire in wires[1:]:
-                    self._blade = self._blade.add(wire)
-                self._blade = self._blade.loft(ruled=False)
+            # 使用 CadQuery 的 sweep/loft 方法
+            # 首先創建所有截面的 2D 輪廓
+            faces = []
+            for section in sections:
+                z_height = float(section.z[0])
+
+                # 創建 2D 點序列
+                points = []
+                for i in range(len(section.x)):
+                    pt = (float(section.x[i]), float(section.y[i]))
+                    if not points or (abs(pt[0] - points[-1][0]) > 1e-8 or
+                                      abs(pt[1] - points[-1][1]) > 1e-8):
+                        points.append(pt)
+
+                if len(points) < 3:
+                    raise CADExportError(f"截面點數不足: {len(points)}")
+
+                # 確保閉合
+                if (abs(points[0][0] - points[-1][0]) > 1e-8 or
+                    abs(points[0][1] - points[-1][1]) > 1e-8):
+                    points.append(points[0])
+
+                # 創建截面面
+                wp = cq.Workplane("XY").workplane(offset=z_height)
+                face = wp.polyline(points).close().wire()
+                faces.append(face)
+
+            # 使用 Solid.makeLoft 進行放樣
+            from OCP.BRepOffsetAPI import BRepOffsetAPI_ThruSections
+
+            builder = BRepOffsetAPI_ThruSections(True, not self.config.loft_ruled)
+
+            for face in faces:
+                wire = face.val().wrapped
+                builder.AddWire(wire)
+
+            builder.Build()
+            shape = builder.Shape()
+
+            self._blade = cq.Workplane("XY").newObject([cq.Shape(shape)])
 
             # 應用圓角
             if self.config.fillet_radius > 0:
@@ -158,6 +180,8 @@ class BladeCADExporter:
                 except Exception:
                     pass  # 圓角失敗時忽略
 
+        except CADExportError:
+            raise
         except Exception as e:
             raise CADExportError(f"放樣失敗: {e}") from e
 
@@ -316,19 +340,52 @@ class BladeCADExporter:
         Returns:
             CadQuery Wire
         """
-        # 創建點列表
-        points = [
-            (float(section.x[i]), float(section.y[i]), float(section.z[i]))
-            for i in range(len(section.x))
-        ]
+        # 創建點列表（排除重複的閉合點）
+        points = []
+        for i in range(len(section.x)):
+            pt = (float(section.x[i]), float(section.y[i]), float(section.z[i]))
+            # 避免重複點
+            if not points or np.sqrt(
+                (pt[0] - points[-1][0])**2 +
+                (pt[1] - points[-1][1])**2 +
+                (pt[2] - points[-1][2])**2
+            ) > 1e-6:
+                points.append(pt)
 
-        # 確保閉合
-        if points[0] != points[-1]:
-            points.append(points[0])
+        # 確保有足夠的點
+        if len(points) < 3:
+            raise CADExportError(f"截面點數不足: {len(points)}")
 
-        # 創建樣條曲線
-        wire = cq.Workplane("XY").spline(points).close().val()
-        return wire
+        # 檢查是否需要閉合（首尾點距離）
+        dist = np.sqrt(
+            (points[0][0] - points[-1][0])**2 +
+            (points[0][1] - points[-1][1])**2 +
+            (points[0][2] - points[-1][2])**2
+        )
+
+        # 使用 polyline 創建閉合線框
+        try:
+            # 創建在截面 Z 高度的工作平面
+            z_height = float(section.z[0])
+            wp = cq.Workplane("XY").workplane(offset=z_height)
+
+            # 轉換為 2D 點（在 XY 平面上）
+            pts_2d = [(p[0], p[1]) for p in points]
+
+            # 創建閉合的樣條曲線
+            wire = wp.spline(pts_2d, periodic=True).val()
+            return wire
+
+        except Exception:
+            # 備用方案：使用多段線
+            try:
+                z_height = float(section.z[0])
+                wp = cq.Workplane("XY").workplane(offset=z_height)
+                pts_2d = [(p[0], p[1]) for p in points]
+                wire = wp.polyline(pts_2d).close().val()
+                return wire
+            except Exception as e:
+                raise CADExportError(f"創建截面線框失敗: {e}") from e
 
 
 def export_blade_to_step(

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/LostSunset/multall-turbomachinery-design/actions/workflows/ci.yml/badge.svg)](https://github.com/LostSunset/multall-turbomachinery-design/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.14+](https://img.shields.io/badge/python-3.14+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub stars](https://img.shields.io/github/stars/LostSunset/multall-turbomachinery-design.svg)](https://github.com/LostSunset/multall-turbomachinery-design/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/LostSunset/multall-turbomachinery-design.svg)](https://github.com/LostSunset/multall-turbomachinery-design/network)
 [![GitHub issues](https://img.shields.io/github/issues/LostSunset/multall-turbomachinery-design.svg)](https://github.com/LostSunset/multall-turbomachinery-design/issues)
@@ -15,7 +15,7 @@
 - **原始系統**: MULTALL Turbomachinery Design System
 - **來源網站**: https://sites.google.com/view/multall-turbomachinery-design/to-download-the-system
 - **原始語言**: FORTRAN 77
-- **重構語言**: Python 3.14+ with PySide6
+- **重構語言**: Python 3.12+ with PySide6
 
 ## ✨ 功能特點
 
@@ -76,7 +76,7 @@
 - ✅ I/O 處理器（stagen.dat 讀取、stage_old.dat/stage_new.dat/stagen.out 寫入）
 - ✅ 使用示例（examples/stagen_example.py）
 - ✅ 主求解器（StagenSolver，完整 3D 葉片幾何生成流程）
-- ⏳ CAD 輸出（CadQuery 整合，待 Python 3.14 支援）
+- ✅ CAD 輸出（CadQuery 整合，支援 STEP/STL/IGES 格式，Python 3.12/3.13）
 
 ### MULTALL - 3D 求解器 ✅ 完成
 
@@ -123,16 +123,16 @@
 
 ### 測試與覆蓋率
 
-- ✅ 341 個測試，全部通過
-- ✅ 74% 程式碼覆蓋率
+- ✅ 377+ 個測試，全部通過
+- ✅ 69% 程式碼覆蓋率
 - ✅ CI/CD 自動化
 
 ## 🚀 快速開始
 
 ### 系統需求
 
-- Python 3.14 或更高版本
-- [uv](https://github.com/astral-sh/uv) 套件管理器
+- Python 3.12 或更高版本
+- [uv](https://github.com/astral-sh/uv) 套件管理器（推薦）
 
 ### 安裝
 
@@ -141,16 +141,20 @@
 git clone https://github.com/LostSunset/multall-turbomachinery-design.git
 cd multall-turbomachinery-design
 
-# 使用 uv 創建虛擬環境（Python 3.14，環境名 .venv314）
-uv venv .venv314 --python 3.14
+# 使用 uv 創建虛擬環境
+uv venv .venv --python 3.12  # 或 3.13, 3.14
 
 # 啟動虛擬環境
-source .venv314/bin/activate  # Linux/Mac
+source .venv/bin/activate   # Linux/Mac
 # 或
-.venv314\Scripts\activate     # Windows
+.venv\Scripts\activate      # Windows
 
 # 安裝依賴
 uv pip install -e ".[dev]"
+
+# 可選功能安裝
+uv pip install -e ".[cad]"    # CAD 輸出（需 Python 3.12/3.13）
+uv pip install -e ".[steam]"  # IAPWS-IF97 蒸汽性質
 ```
 
 ### 執行示例
@@ -205,6 +209,31 @@ performance = solver.run(output_dir="output")
 print(f"功率: {abs(performance['power']):.2f} kW")
 ```
 
+### CAD 輸出（需 Python 3.12/3.13）
+
+```python
+from multall_turbomachinery_design.cad import BladeCADExporter, check_cad_available
+from multall_turbomachinery_design.cad.blade_cad import BladeSection
+import numpy as np
+
+if check_cad_available():
+    exporter = BladeCADExporter()
+
+    # 創建葉片截面
+    sections = []
+    for span in [0.0, 0.5, 1.0]:
+        theta = np.linspace(0, 2*np.pi, 50)
+        x = 0.05 * 0.5 * (1 - np.cos(theta))
+        y = 0.005 * np.sin(theta)
+        z = np.full_like(x, 0.3 + span * 0.1)
+        sections.append(BladeSection(span_fraction=span, x=x, y=y, z=z))
+
+    # 生成並導出
+    exporter.create_blade_from_sections(sections)
+    exporter.export("blade.step", format="step")
+    exporter.export("blade.stl", format="stl")
+```
+
 ## 📁 專案結構
 
 ```
@@ -212,10 +241,14 @@ multall-turbomachinery-design/
 ├── multall_turbomachinery_design/    # 主程式包
 │   ├── meangen/                      # 平均線設計模組
 │   ├── stagen/                       # 葉片幾何模組
-│   ├── multall/                      # 求解器模組
-│   ├── ui/                           # PySide6 UI
+│   ├── multall/                      # 3D 求解器模組
+│   ├── cad/                          # CAD 輸出模組（可選）
+│   ├── visualization/                # 結果視覺化
+│   ├── ui/                           # PySide6 圖形介面
+│   ├── cli/                          # 命令行介面
 │   └── utils/                        # 工具函數
 ├── tests/                            # 測試檔案
+├── examples/                         # 使用範例
 ├── docs/                             # 文檔
 ├── multall-open_20260120/            # 原始 FORTRAN 程式碼（參考用）
 ├── pyproject.toml                    # 專案設定
