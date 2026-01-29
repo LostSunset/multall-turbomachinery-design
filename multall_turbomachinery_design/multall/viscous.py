@@ -16,6 +16,7 @@ class WallDistanceCalculator:
     """壁面距離計算器。
 
     計算每個網格點到最近壁面的距離。
+    對於渦輪機械，壁面通常是 HUB (K=0) 和 CASING (K=KM-1)。
     """
 
     def __init__(self, grid: Grid3D) -> None:
@@ -26,26 +27,157 @@ class WallDistanceCalculator:
         """
         self.grid = grid
         self._wall_distance: NDArray[np.float64] | None = None
+        self._method = "radius"  # 'radius' 或 'geometric'
 
-    def compute(self) -> NDArray[np.float64]:
+    def compute(self, method: str | None = None) -> NDArray[np.float64]:
         """計算壁面距離。
 
         對於渦輪機械，壁面通常是 HUB (K=0) 和 CASING (K=KM-1)。
 
+        Args:
+            method: 計算方法 ('radius' 或 'geometric')，None 使用默認
+
         Returns:
             壁面距離數組
         """
-        if self._wall_distance is not None:
+        if self._wall_distance is not None and method is None:
             return self._wall_distance
+
+        if method is not None:
+            self._method = method
 
         im, jm, km = self.grid.im, self.grid.jm, self.grid.km
 
         # 初始化壁面距離
         d = np.zeros((im, jm, km))
 
-        # 假設 K 方向是跨向（從 HUB 到 CASING）
-        # 壁面在 K=0 (HUB) 和 K=KM-1 (CASING)
-        # 這裡使用簡化的線性插值
+        if self._method == "radius" and self.grid.r.size > 0:
+            # 使用實際網格半徑座標計算
+            d = self._compute_from_radius()
+        elif self._method == "geometric" and self.grid.x.size > 0:
+            # 使用完整幾何座標計算（適用於複雜網格）
+            d = self._compute_geometric()
+        else:
+            # 回退到線性插值方法
+            d = self._compute_linear_fallback()
+
+        self._wall_distance = d
+        return d
+
+    def _compute_from_radius(self) -> NDArray[np.float64]:
+        """使用半徑座標計算壁面距離。
+
+        對於軸流渦輪機械，K 方向是跨向，半徑 r(j,k) 定義了流道形狀。
+        壁面距離 = min(r - r_hub, r_tip - r)
+
+        Returns:
+            壁面距離數組
+        """
+        im, jm, km = self.grid.im, self.grid.jm, self.grid.km
+        d = np.zeros((im, jm, km))
+
+        # 獲取半徑座標 (jm, km) 或 (im, jm, km)
+        r = self.grid.r
+
+        if r.ndim == 2:
+            # r 是 (jm, km) 陣列
+            for j in range(jm):
+                # 獲取該 j 位置的 hub 和 casing 半徑
+                r_hub = r[j, 0]  # K=0 是 HUB
+                r_tip = r[j, km - 1]  # K=KM-1 是 CASING
+
+                for k in range(km):
+                    r_local = r[j, k]
+                    # 到 hub 和 casing 的距離
+                    d_hub = abs(r_local - r_hub)
+                    d_cas = abs(r_tip - r_local)
+                    # 取較小值
+                    d[:, j, k] = min(d_hub, d_cas)
+
+        elif r.ndim == 3:
+            # r 是 (im, jm, km) 陣列
+            for i in range(im):
+                for j in range(jm):
+                    r_hub = r[i, j, 0]
+                    r_tip = r[i, j, km - 1]
+
+                    for k in range(km):
+                        r_local = r[i, j, k]
+                        d_hub = abs(r_local - r_hub)
+                        d_cas = abs(r_tip - r_local)
+                        d[i, j, k] = min(d_hub, d_cas)
+
+        # 確保壁面上的距離為小值（避免除零）
+        d = np.maximum(d, 1e-10)
+
+        return d
+
+    def _compute_geometric(self) -> NDArray[np.float64]:
+        """使用完整幾何座標計算壁面距離。
+
+        對於複雜網格（如彎曲流道），使用 x-r 平面內的距離。
+
+        Returns:
+            壁面距離數組
+        """
+        im, jm, km = self.grid.im, self.grid.jm, self.grid.km
+        d = np.zeros((im, jm, km))
+
+        x = self.grid.x
+        r = self.grid.r
+
+        if x.ndim == 2 and r.ndim == 2:
+            # x, r 是 (jm, km) 陣列
+            for j in range(jm):
+                # Hub 壁面座標
+                x_hub = x[j, 0]
+                r_hub = r[j, 0]
+
+                # Casing 壁面座標
+                x_cas = x[j, km - 1]
+                r_cas = r[j, km - 1]
+
+                for k in range(km):
+                    x_local = x[j, k]
+                    r_local = r[j, k]
+
+                    # 計算到 hub 和 casing 的幾何距離
+                    d_hub = np.sqrt((x_local - x_hub) ** 2 + (r_local - r_hub) ** 2)
+                    d_cas = np.sqrt((x_local - x_cas) ** 2 + (r_local - r_cas) ** 2)
+
+                    d[:, j, k] = min(d_hub, d_cas)
+
+        # 確保壁面上的距離為小值
+        d = np.maximum(d, 1e-10)
+
+        return d
+
+    def _compute_linear_fallback(self) -> NDArray[np.float64]:
+        """線性插值回退方法。
+
+        當網格座標不可用時使用。
+        估計 span 並進行線性插值。
+
+        Returns:
+            壁面距離數組
+        """
+        im, jm, km = self.grid.im, self.grid.jm, self.grid.km
+        d = np.zeros((im, jm, km))
+
+        # 嘗試從半徑估計 span
+        if self.grid.r.size > 0:
+            r = self.grid.r
+            if r.ndim == 2:
+                span = np.mean(r[:, km - 1] - r[:, 0])
+            elif r.ndim == 3:
+                span = np.mean(r[:, :, km - 1] - r[:, :, 0])
+            else:
+                span = 0.05  # 預設 5cm
+        else:
+            span = 0.05  # 預設 5cm
+
+        # 確保 span 是正值
+        span = max(abs(span), 1e-6)
 
         for k in range(km):
             # 到 HUB 的距離比例
@@ -53,16 +185,21 @@ class WallDistanceCalculator:
             # 到 CASING 的距離比例
             frac_cas = 1.0 - frac_hub
 
-            # 使用較小的距離
-            # 假設 span 是網格 K 方向的總高度
-            span = 0.05  # 預設 5cm，實際應從網格獲取
-
             d_hub = frac_hub * span
             d_cas = frac_cas * span
             d[:, :, k] = np.minimum(d_hub, d_cas)
 
-        self._wall_distance = d
+        # 確保壁面上的距離為小值
+        d = np.maximum(d, 1e-10)
+
         return d
+
+    def invalidate_cache(self) -> None:
+        """清除快取的壁面距離。
+
+        當網格更新時調用此方法。
+        """
+        self._wall_distance = None
 
 
 class MixingLengthModel:
