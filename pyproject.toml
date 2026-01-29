@@ -21,10 +21,12 @@ dependencies = [
     "numpy>=2.2.0",
     "scipy>=1.15.0",
     "matplotlib>=3.10.0",
-    "cadquery>=2.4.0",  # 3D CAD 建模
 ]
 
 [project.optional-dependencies]
+cad = [
+    "cadquery>=2.4.0",  # 3D CAD 建模（待 Python 3.14 支援）
+]
 dev = [
     "pytest>=8.3.0",
     "pytest-cov>=6.0.0",
