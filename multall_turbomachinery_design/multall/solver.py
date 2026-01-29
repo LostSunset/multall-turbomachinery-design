@@ -18,8 +18,10 @@ from .data_structures import (
     MultallConfig,
     ViscousModel,
 )
+from .flux import ArtificialViscosity, FluxCalculator
 from .gas_properties import GasCalculator
 from .io_handler import MultallFileHandler, MultallInputReader
+from .time_stepping import ConvergenceMonitor, TimeStepper
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -41,6 +43,17 @@ class MultallSolver:
         self.config = config
         self.gas_calc = GasCalculator(config.gas)
 
+        # 初始化數值組件
+        self.flux_calc = FluxCalculator(config.gas)
+        self.time_stepper = TimeStepper(config.gas, config.solver)
+        self.artificial_viscosity = ArtificialViscosity(
+            sf_2nd=config.solver.sfx_in,
+            sf_4th=config.solver.fac_4th,
+        )
+        self.convergence_monitor = ConvergenceMonitor(
+            convergence_limit=config.solver.convergence_limit,
+        )
+
         # 初始化網格和流場
         self.grid: Grid3D | None = None
         self.flow: FlowField | None = None
@@ -48,8 +61,6 @@ class MultallSolver:
         # 求解狀態
         self._step = 0
         self._converged = False
-        self._residual_history: list[float] = []
-        self._mass_flow_history: list[float] = []
 
         # 回調函數
         self._progress_callback: Callable[[int, float, float], None] | None = None
@@ -195,24 +206,50 @@ class MultallSolver:
         # 壓力
         flow.p[:] = gas.pressure(flow.rho, flow.t_static)
 
-    def _compute_fluxes(self) -> tuple[NDArray[np.float64], ...]:
-        """計算通量。
+    def _compute_fluxes(
+        self,
+    ) -> tuple[
+        tuple[NDArray[np.float64], ...],
+        tuple[NDArray[np.float64], ...],
+        tuple[NDArray[np.float64], ...],
+    ]:
+        """計算三個方向的通量。
 
         Returns:
-            (質量通量, 動量通量X, 動量通量R, 動量通量T, 能量通量)
+            (X方向通量, θ方向通量, R方向通量)
+            每個方向包含 (質量通量, X動量通量, R動量通量, θ動量通量, 能量通量)
+        """
+        if self.flow is None or self.grid is None:
+            empty = (np.array([]),) * 5
+            return empty, empty, empty
+
+        # 計算三個方向的對流通量
+        flux_x = self.flux_calc.compute_convective_flux_x(self.flow, self.grid)
+        flux_theta = self.flux_calc.compute_convective_flux_theta(self.flow, self.grid)
+        flux_r = self.flux_calc.compute_convective_flux_r(self.flow, self.grid)
+
+        return flux_x, flux_theta, flux_r
+
+    def _compute_residual_from_fluxes(
+        self,
+        flux_x: tuple[NDArray[np.float64], ...],
+        flux_theta: tuple[NDArray[np.float64], ...],
+        flux_r: tuple[NDArray[np.float64], ...],
+    ) -> tuple[NDArray[np.float64], ...]:
+        """從通量計算殘差。
+
+        Args:
+            flux_x: X 方向通量
+            flux_theta: θ 方向通量
+            flux_r: R 方向通量
+
+        Returns:
+            各守恆量的殘差
         """
         if self.flow is None or self.grid is None:
             return (np.array([]),) * 5
 
-        # 這裡是簡化版本，實際需要完整的通量計算
-        shape = self.flow.rho.shape
-        flux_mass = np.zeros(shape)
-        flux_momx = np.zeros(shape)
-        flux_momr = np.zeros(shape)
-        flux_momt = np.zeros(shape)
-        flux_energy = np.zeros(shape)
-
-        return flux_mass, flux_momx, flux_momr, flux_momt, flux_energy
+        return self.flux_calc.compute_residual(self.flow, self.grid, flux_x, flux_theta, flux_r)
 
     def _apply_boundary_conditions(self) -> None:
         """應用邊界條件。"""
@@ -341,23 +378,34 @@ class MultallSolver:
         """執行一個時間步。
 
         Returns:
-            殘差
+            殘差 L2 範數
         """
         if self.flow is None or self.grid is None:
             return 1.0
 
-        # 計算通量（未來實現完整的通量計算）
-        _fluxes = self._compute_fluxes()
+        # 計算三個方向的通量
+        flux_x, flux_theta, flux_r = self._compute_fluxes()
 
-        # 計算時間步長（未來用於顯式時間推進）
-        _dt = self._compute_time_step()
+        # 計算殘差（通量散度）
+        residual = self._compute_residual_from_fluxes(flux_x, flux_theta, flux_r)
 
-        # 更新守恆變量（顯式時間推進）
-        # dU/dt = -∇·F + S
-        # TODO: 實現完整的時間推進算法，使用 _fluxes 和 _dt
+        # 計算局部時間步長
+        dt = self.time_stepper.compute_local_time_step(self.flow, self.grid)
 
-        # 計算殘差
-        residual = self._compute_residual()
+        # 添加人工黏性（穩定性）
+        av_x = self.artificial_viscosity.compute_artificial_dissipation(self.flow, direction="x")
+
+        # 合併人工黏性到殘差
+        combined_residual = (
+            residual[0] - av_x[0],
+            residual[1] - av_x[1],
+            residual[2] - av_x[2],
+            residual[3] - av_x[3],
+            residual[4] - av_x[4],
+        )
+
+        # 執行時間步進（使用 SCREE 或 Euler 方法）
+        self.time_stepper.scree_step(self.flow, combined_residual, dt)
 
         # 更新原始變量
         self._update_primitive_variables()
@@ -365,7 +413,11 @@ class MultallSolver:
         # 應用邊界條件
         self._apply_boundary_conditions()
 
-        return residual
+        # 計算 L2 殘差並記錄
+        l2_residual = self.convergence_monitor.compute_l2_residual(residual)
+        self.convergence_monitor.add_residual(l2_residual)
+
+        return l2_residual
 
     def _compute_residual(self) -> float:
         """計算殘差。
@@ -412,31 +464,35 @@ class MultallSolver:
         if max_steps is None:
             max_steps = self.config.solver.max_steps
 
-        conv_limit = self.config.solver.convergence_limit
-
         for step in range(max_steps):
             self._step = step + 1
 
-            # 執行時間步
+            # 執行時間步（殘差已在 _time_step 中記錄到 monitor）
             residual = self._time_step()
-            self._residual_history.append(residual)
 
             # 計算質量流量
             mass_flow = self._compute_mass_flow()
-            self._mass_flow_history.append(mass_flow)
+            self.convergence_monitor.add_mass_flow(mass_flow)
 
             # 調用進度回調
             if self._progress_callback:
                 self._progress_callback(self._step, residual, mass_flow)
 
-            # 檢查收斂
-            if residual < conv_limit:
+            # 檢查收斂（使用 monitor）
+            if self.convergence_monitor.is_converged():
                 self._converged = True
                 break
 
+            # 檢查停滯
+            if self.convergence_monitor.is_stalled():
+                print(f"警告：求解在步 {step} 停滯")
+
             # 每 100 步輸出
             if step % 100 == 0:
-                print(f"步 {step}: 殘差 = {residual:.6e}, 流量 = {mass_flow:.4f}")
+                rate = self.convergence_monitor.get_convergence_rate()
+                print(
+                    f"步 {step}: 殘差 = {residual:.6e}, 流量 = {mass_flow:.4f}, 收斂率 = {rate:.4f}"
+                )
 
         return self._converged
 
@@ -456,11 +512,15 @@ class MultallSolver:
         converged = self.solve()
 
         # 收集結果
+        residual_history = self.convergence_monitor.residual_history
+        mass_flow_history = self.convergence_monitor.mass_flow_history
         result: dict[str, object] = {
             "converged": converged,
             "steps": self._step,
-            "final_residual": self._residual_history[-1] if self._residual_history else 1.0,
-            "final_mass_flow": self._mass_flow_history[-1] if self._mass_flow_history else 0.0,
+            "final_residual": residual_history[-1] if residual_history else 1.0,
+            "final_mass_flow": mass_flow_history[-1] if mass_flow_history else 0.0,
+            "convergence_rate": self.convergence_monitor.get_convergence_rate(),
+            "normalized_residual": self.convergence_monitor.normalized_residual,
         }
 
         # 輸出結果
@@ -477,7 +537,7 @@ class MultallSolver:
         Returns:
             殘差列表
         """
-        return self._residual_history.copy()
+        return self.convergence_monitor.residual_history
 
     def get_mass_flow_history(self) -> list[float]:
         """獲取質量流量歷史。
@@ -485,7 +545,7 @@ class MultallSolver:
         Returns:
             質量流量列表
         """
-        return self._mass_flow_history.copy()
+        return self.convergence_monitor.mass_flow_history
 
     @property
     def is_converged(self) -> bool:
