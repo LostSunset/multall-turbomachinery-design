@@ -66,7 +66,7 @@
 - ✅ 使用示例（examples/meangen_example.py）
 - ⏳ 圖形介面整合
 
-### STAGEN - 葉片幾何模組 🚧 進行中
+### STAGEN - 葉片幾何模組 ✅ 完成
 
 - ✅ 數據結構定義（BladeProfile2D, StreamSurface3D, StackingParameters）
 - ✅ 2D 葉片截面生成（中弧線積分、厚度分佈、前後緣處理）
@@ -75,7 +75,7 @@
 - ✅ 網格生成器（周向、跨向、軸向網格，對稱擴張策略）
 - ✅ I/O 處理器（stagen.dat 讀取、stage_old.dat/stage_new.dat/stagen.out 寫入）
 - ✅ 使用示例（examples/stagen_example.py）
-- ⏳ 主求解器（完整 3D 葉片幾何生成流程）
+- ✅ 主求解器（StagenSolver，完整 3D 葉片幾何生成流程）
 - ⏳ CAD 輸出（CadQuery 整合，待 Python 3.14 支援）
 
 ### MULTALL - 3D 求解器 🔮 規劃中
@@ -87,8 +87,8 @@
 
 ### 測試與覆蓋率
 
-- ✅ 113 個測試，全部通過
-- ✅ 94% 程式碼覆蓋率
+- ✅ 130 個測試，全部通過
+- ✅ 85% 程式碼覆蓋率
 - ✅ CI/CD 自動化
 
 ## 🚀 快速開始
