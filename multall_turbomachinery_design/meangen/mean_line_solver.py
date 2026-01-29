@@ -469,20 +469,66 @@ class MeanLineSolver:
             stagen_writer = StagenOutputWriter()
             stagen_writer.write_stagen_file(self.config, stagen_dat)
 
-    def run(self, output_dir: str | Path | None = None) -> dict[str, float]:
+    def run(self, output_dir: str | Path | None = None) -> dict:
         """執行完整的平均線設計。
 
         Args:
             output_dir: 輸出目錄（None 則不寫入檔案）
 
         Returns:
-            性能參數字典
+            包含性能參數和速度三角形的字典
         """
         # 求解所有級
         self.solve_all_stages()
 
         # 計算整體性能
         performance = self.calculate_overall_performance()
+
+        # 收集速度三角形數據
+        velocity_triangles = []
+        for i, stage in enumerate(self.config.stages):
+            stage_num = i + 1
+
+            # 轉子進口
+            if hasattr(stage, "inlet_triangle") and stage.inlet_triangle:
+                tri = stage.inlet_triangle
+                # 計算絕對速度和相對速度
+                v = math.sqrt(tri.vm**2 + tri.vtheta**2)
+                w = math.sqrt(tri.vm**2 + (tri.vtheta - tri.u)**2)
+                velocity_triangles.append({
+                    "stage": stage_num,
+                    "station": "轉子進口",
+                    "vx": tri.vm,
+                    "vt": tri.vtheta,
+                    "v": v,
+                    "alpha": tri.alpha,
+                    "w": w,
+                    "beta": tri.beta,
+                })
+
+            # 轉子出口
+            if hasattr(stage, "outlet_triangle") and stage.outlet_triangle:
+                tri = stage.outlet_triangle
+                # 計算絕對速度和相對速度
+                v = math.sqrt(tri.vm**2 + tri.vtheta**2)
+                w = math.sqrt(tri.vm**2 + (tri.vtheta - tri.u)**2)
+                velocity_triangles.append({
+                    "stage": stage_num,
+                    "station": "轉子出口",
+                    "vx": tri.vm,
+                    "vt": tri.vtheta,
+                    "v": v,
+                    "alpha": tri.alpha,
+                    "w": w,
+                    "beta": tri.beta,
+                })
+
+        performance["velocity_triangles"] = velocity_triangles
+
+        # 添加兼容的欄位名稱
+        performance["pressure_ratio"] = performance.get("overall_pressure_ratio", 1.0)
+        performance["temperature_ratio"] = performance.get("overall_temperature_ratio", 1.0)
+        performance["efficiency"] = performance.get("overall_isentropic_efficiency", 0.9)
 
         # 寫入輸出
         if output_dir:
