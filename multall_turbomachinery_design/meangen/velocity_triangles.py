@@ -254,9 +254,7 @@ class VelocityTriangleCalculator:
         """
         return dh / (u * u) if u > 0 else 0.0
 
-    def calculate_reaction(
-        self, dh_rotor: float, dh_stage: float
-    ) -> float:
+    def calculate_reaction(self, dh_rotor: float, dh_stage: float) -> float:
         """計算反應度。
 
         Args:

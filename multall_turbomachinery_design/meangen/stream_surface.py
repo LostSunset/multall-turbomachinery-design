@@ -293,9 +293,7 @@ class StreamSurfaceGenerator:
         surface.pitch_angle = self._calculate_pitch_angle(surface.x, surface.r)
         surface.s_dist = self._calculate_distance(surface.x, surface.r)
 
-    def interpolate_surface(
-        self, surface: StreamSurface, new_npoints: int
-    ) -> StreamSurface:
+    def interpolate_surface(self, surface: StreamSurface, new_npoints: int) -> StreamSurface:
         """插值流表面到新的點數。
 
         Args:
@@ -366,12 +364,8 @@ class StreamSurfaceGenerator:
         # 計算平均值
         x_mean = [(h + t) / 2.0 for h, t in zip(hub_surface.x, tip_surface.x)]
         r_mean = [(h + t) / 2.0 for h, t in zip(hub_surface.r, tip_surface.r)]
-        vm_ratio_mean = [
-            (h + t) / 2.0 for h, t in zip(hub_surface.vm_ratio, tip_surface.vm_ratio)
-        ]
-        fblock_mean = [
-            (h + t) / 2.0 for h, t in zip(hub_surface.fblock, tip_surface.fblock)
-        ]
+        vm_ratio_mean = [(h + t) / 2.0 for h, t in zip(hub_surface.vm_ratio, tip_surface.vm_ratio)]
+        fblock_mean = [(h + t) / 2.0 for h, t in zip(hub_surface.fblock, tip_surface.fblock)]
 
         # 計算衍生量
         pitch_angle_mean = self._calculate_pitch_angle(x_mean, r_mean)

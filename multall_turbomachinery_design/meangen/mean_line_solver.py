@@ -80,13 +80,9 @@ class MeanLineSolver:
 
         # 轉子出口：從相對角 beta_out 計算絕對角
         # tan(α) = tan(β) + u/vm
-        alpha_rotor_out = math.atan(
-            math.tan(beta_out * self.deg2rad) + u / vm
-        ) * self.rad2deg
+        alpha_rotor_out = math.atan(math.tan(beta_out * self.deg2rad) + u / vm) * self.rad2deg
 
-        outlet = self.velocity_calc.create_velocity_triangle(
-            u, vm, alpha_rotor_out, is_rotor=True
-        )
+        outlet = self.velocity_calc.create_velocity_triangle(u, vm, alpha_rotor_out, is_rotor=True)
 
         # 計算流場
         # TODO: 實現完整的熱力學計算
@@ -191,9 +187,7 @@ class MeanLineSolver:
         config = reader.read_config(input_file)
         return cls(config)
 
-    def write_outputs(
-        self, output_dir: str | Path, write_stagen: bool = True
-    ) -> None:
+    def write_outputs(self, output_dir: str | Path, write_stagen: bool = True) -> None:
         """寫入輸出檔案。
 
         Args:

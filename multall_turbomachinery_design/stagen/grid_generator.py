@@ -18,9 +18,7 @@ class GridGenerator:
         """初始化網格生成器。"""
         pass
 
-    def calculate_pitchwise_expansion(
-        self, im: int, fp_rat: float, fp_max: float
-    ) -> list[float]:
+    def calculate_pitchwise_expansion(self, im: int, fp_rat: float, fp_max: float) -> list[float]:
         """計算周向網格擴張比。
 
         使用對稱擴張策略，從前緣和後緣兩端向中心擴張。
@@ -138,9 +136,7 @@ class GridGenerator:
             跨向網格坐標（半徑）(km,) [m]
         """
         km = grid_params.km
-        fr, sumfr = self.calculate_spanwise_expansion(
-            km, grid_params.fr_rat, grid_params.fr_max
-        )
+        fr, sumfr = self.calculate_spanwise_expansion(km, grid_params.fr_rat, grid_params.fr_max)
 
         # 計算總跨度
         span = r_tip - r_hub
@@ -232,18 +228,14 @@ class GridGenerator:
         # 生成網格
         _y_grid = self.generate_pitchwise_grid(blade_row.n_blade, pitch, grid_params)
         _r_grid = self.generate_spanwise_grid(r_hub, r_tip, grid_params)
-        _x_grid, j_le, j_te = self.generate_axial_grid(
-            x_le, x_te, axial_chord, grid_params
-        )
+        _x_grid, j_le, j_te = self.generate_axial_grid(x_le, x_te, axial_chord, grid_params)
 
         # 存儲索引
         blade_row.j_le = j_le
         blade_row.j_te = j_te
         blade_row.j_m = len(_x_grid)
 
-    def calculate_spanwise_fractions(
-        self, km: int, fr_rat: float, fr_max: float
-    ) -> list[float]:
+    def calculate_spanwise_fractions(self, km: int, fr_rat: float, fr_max: float) -> list[float]:
         """計算各跨向截面的分數位置（0=HUB, 1=TIP）。
 
         Args:

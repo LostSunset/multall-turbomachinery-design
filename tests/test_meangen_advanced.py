@@ -110,9 +110,7 @@ class TestStreamSurfaceGenerator:
         gen.smooth_surface(surface, nsmooth=5, smooth_factor=0.1)
 
         # 檢查坐標有變化
-        has_change = any(
-            abs(x1 - x2) > 1e-10 for x1, x2 in zip(surface.x[1:-1], x_orig[1:-1])
-        )
+        has_change = any(abs(x1 - x2) > 1e-10 for x1, x2 in zip(surface.x[1:-1], x_orig[1:-1]))
         # 注意：軸向流的 r 不應該變化太多
         assert has_change or True  # 平滑可能很小
 
@@ -237,9 +235,7 @@ class TestBladeGeometryGenerator:
         """測試 Zweifel 係數計算。"""
         gen = BladeGeometryGenerator(MachineType.TURBINE)
 
-        zw = gen.calculate_zweifel_coefficient(
-            alpha_in=30.0, alpha_out=-30.0, vm=100.0, u=200.0
-        )
+        zw = gen.calculate_zweifel_coefficient(alpha_in=30.0, alpha_out=-30.0, vm=100.0, u=200.0)
 
         # 渦輪的 Zweifel 係數通常在 0.8-1.0 範圍
         assert 0.5 < zw < 2.0

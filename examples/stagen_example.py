@@ -131,9 +131,7 @@ def example_3d_projection() -> None:
     # 生成 2D 葉片截面
     x_fractions = [0.0, 0.5, 1.0]
     camber_slope = [0.1, 0.0, -0.1]
-    thickness_params = ThicknessParameters(
-        tk_le=0.02, tk_te=0.01, tk_max=0.08, xtk_max=0.40
-    )
+    thickness_params = ThicknessParameters(tk_le=0.02, tk_te=0.01, tk_max=0.08, xtk_max=0.40)
 
     profile = generator.generate_from_camber_thickness(
         camber_slope=camber_slope,

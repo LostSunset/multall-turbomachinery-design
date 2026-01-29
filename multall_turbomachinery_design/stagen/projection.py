@@ -97,9 +97,7 @@ class StreamSurfaceProjector:
         Returns:
             3D 葉片截面
         """
-        section = BladeSection3D(
-            section_number=section_number, spanwise_fraction=spanwise_fraction
-        )
+        section = BladeSection3D(section_number=section_number, spanwise_fraction=spanwise_fraction)
 
         # 縮放因子：從單位弦（profile）到子午弦（surface）
         scale = surface.chord_meridional / profile.chord_length
@@ -108,9 +106,7 @@ class StreamSurfaceProjector:
         npoints = len(profile.x_camber)
 
         # 沿子午線的位置
-        s_grid = [
-            surface.le_s + scale * x for x in profile.x_camber
-        ]
+        s_grid = [surface.le_s + scale * x for x in profile.x_camber]
 
         # 插值到流線表面獲得 x 和 r
         x_grid = np.interp(s_grid, surface.s_meridional, surface.x).tolist()
@@ -152,8 +148,10 @@ class StreamSurfaceProjector:
 
         for j in range(j_le + 1, j_te + 1):
             # 梯形面積
-            area = 0.5 * (section.tk_grid[j] + section.tk_grid[j - 1]) * (
-                section.x_grid[j] - section.x_grid[j - 1]
+            area = (
+                0.5
+                * (section.tk_grid[j] + section.tk_grid[j - 1])
+                * (section.x_grid[j] - section.x_grid[j - 1])
             )
 
             sum_area += area
@@ -222,12 +220,8 @@ class StreamSurfaceProjector:
         """
         # 向 HUB 中心堆疊
         if stacking.f_centroid <= 1.01:
-            dx_cent = stacking.f_centroid * (
-                stacking.x_centroid_hub - section.x_centroid
-            )
-            dy_cent = stacking.f_centroid * (
-                stacking.y_centroid_hub - section.y_centroid
-            )
+            dx_cent = stacking.f_centroid * (stacking.x_centroid_hub - section.x_centroid)
+            dy_cent = stacking.f_centroid * (stacking.y_centroid_hub - section.y_centroid)
 
             for j in range(len(section.x_grid)):
                 section.x_grid[j] += dx_cent
@@ -246,25 +240,15 @@ class StreamSurfaceProjector:
         y_dif = y_te - y_le
 
         # 計算移動量
-        delta_x = (
-            -stacking.f_sweep * x_dif
-            - stacking.f_lean * y_dif
-            + stacking.f_axial * x_dif
-        )
-        delta_y = (
-            -stacking.f_sweep * y_dif
-            + stacking.f_lean * x_dif
-            + stacking.f_tang * x_dif
-        )
+        delta_x = -stacking.f_sweep * x_dif - stacking.f_lean * y_dif + stacking.f_axial * x_dif
+        delta_y = -stacking.f_sweep * y_dif + stacking.f_lean * x_dif + stacking.f_tang * x_dif
 
         # 固定點坐標
         x_const = x_le + stacking.f_const * x_dif
 
         # 應用縮放和移動
         for j in range(len(section.x_grid)):
-            section.x_grid[j] = x_const + stacking.f_scale * (
-                section.x_grid[j] - x_const + delta_x
-            )
+            section.x_grid[j] = x_const + stacking.f_scale * (section.x_grid[j] - x_const + delta_x)
             section.y_grid[j] = stacking.f_scale * (section.y_grid[j] + delta_y)
 
         # 重新插值半徑（僅對軸對稱機械）
@@ -272,6 +256,4 @@ class StreamSurfaceProjector:
         r_dif = section.r_grid[section.j_te] - section.r_grid[section.j_le]
         if abs(r_dif) <= 0.5 * abs(x_dif):
             # 軸對稱，重新插值半徑
-            section.r_grid = np.interp(
-                section.x_grid, surface.x, surface.r
-            ).tolist()
+            section.r_grid = np.interp(section.x_grid, surface.x, surface.r).tolist()

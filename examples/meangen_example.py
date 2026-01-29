@@ -65,7 +65,7 @@ def example_turbine_design() -> None:
     print("\n設計參數：")
     print(f"  轉速：{config.rpm:.0f} RPM")
     print(f"  質量流量：{config.mass_flow:.1f} kg/s")
-    print(f"  設計半徑：{config.design_radius*1000:.1f} mm")
+    print(f"  設計半徑：{config.design_radius * 1000:.1f} mm")
     print(f"  流量係數：{stage.phi:.3f}")
     print(f"  負荷係數：{stage.psi:.3f}")
     print(f"  反應度：{stage.reaction:.3f}")
@@ -90,11 +90,11 @@ def example_turbine_design() -> None:
     if stage.rotor:
         print("  轉子：")
         print(f"    葉片數：{stage.rotor.n_blades}")
-        print(f"    軸向弦長：{stage.rotor.axial_chord*1000:.1f} mm")
+        print(f"    軸向弦長：{stage.rotor.axial_chord * 1000:.1f} mm")
     if stage.stator:
         print("  定子：")
         print(f"    葉片數：{stage.stator.n_blades}")
-        print(f"    軸向弦長：{stage.stator.axial_chord*1000:.1f} mm")
+        print(f"    軸向弦長：{stage.stator.axial_chord * 1000:.1f} mm")
 
     print("\n性能：")
     print(f"  比功：{abs(performance['total_work']):.0f} J/kg")
@@ -149,7 +149,7 @@ def example_compressor_design() -> None:
     print("\n設計參數：")
     print(f"  轉速：{config.rpm:.0f} RPM")
     print(f"  質量流量：{config.mass_flow:.1f} kg/s")
-    print(f"  設計半徑：{config.design_radius*1000:.1f} mm")
+    print(f"  設計半徑：{config.design_radius * 1000:.1f} mm")
 
     print("\n性能：")
     print(f"  比功：{abs(performance['total_work']):.0f} J/kg (輸入)")

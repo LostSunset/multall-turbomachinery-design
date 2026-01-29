@@ -43,9 +43,7 @@ class MeangenInputReader:
         with open(input_file, encoding=self.encoding) as f:
             # 讀取機械類型
             turbo_typ = self._read_line(f).strip()
-            machine_type = (
-                MachineType.TURBINE if turbo_typ == "T" else MachineType.COMPRESSOR
-            )
+            machine_type = MachineType.TURBINE if turbo_typ == "T" else MachineType.COMPRESSOR
 
             # 讀取流動類型
             flo_typ = self._read_line(f).strip()
@@ -86,9 +84,7 @@ class MeangenInputReader:
 
         return config
 
-    def _read_stage_design(
-        self, f: TextIO, stage_num: int, config: MeangenConfig
-    ) -> StageDesign:
+    def _read_stage_design(self, f: TextIO, stage_num: int, config: MeangenConfig) -> StageDesign:
         """讀取單級設計參數。
 
         Args:
@@ -237,9 +233,7 @@ class StagenOutputWriter:
         """
         self.encoding = encoding
 
-    def write_stagen_file(
-        self, config: MeangenConfig, output_file: str | Path
-    ) -> None:
+    def write_stagen_file(self, config: MeangenConfig, output_file: str | Path) -> None:
         """寫入 stagen.dat 檔案。
 
         Args:
@@ -291,9 +285,7 @@ class StagenOutputWriter:
         f.write("       1.000                 SCALING FACTOR\n")
         f.write("\n")
 
-    def _write_blade_row(
-        self, f: TextIO, blade_row: object, stage: StageDesign
-    ) -> None:
+    def _write_blade_row(self, f: TextIO, blade_row: object, stage: StageDesign) -> None:
         """寫入葉片排數據。
 
         Args:
@@ -328,9 +320,7 @@ class MeangenOutputWriter:
         """
         self.encoding = encoding
 
-    def write_output_file(
-        self, config: MeangenConfig, output_file: str | Path
-    ) -> None:
+    def write_output_file(self, config: MeangenConfig, output_file: str | Path) -> None:
         """寫入 meangen.out 檔案。
 
         Args:

@@ -76,9 +76,7 @@ class BladeGeometryGenerator:
                 # 前半段：從前緣到最大厚度
                 # 使用平滑多項式
                 t_ratio = x / xtk_max if xtk_max > 0 else 0.0
-                t = tk_le + (tk_max - tk_le) * (
-                    3 * t_ratio**2 - 2 * t_ratio**3
-                )  # 平滑 S 曲線
+                t = tk_le + (tk_max - tk_le) * (3 * t_ratio**2 - 2 * t_ratio**3)  # 平滑 S 曲線
             else:
                 # 後半段：從最大厚度到後緣
                 t_ratio = (x - xtk_max) / (1.0 - xtk_max) if xtk_max < 1.0 else 0.0

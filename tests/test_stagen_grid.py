@@ -185,17 +185,13 @@ def test_spanwise_grid_uniform_expansion(generator: GridGenerator) -> None:
         assert dr_k == pytest.approx(dr, rel=1e-6)
 
 
-def test_generate_axial_grid(
-    generator: GridGenerator, default_grid_params: GridParameters
-) -> None:
+def test_generate_axial_grid(generator: GridGenerator, default_grid_params: GridParameters) -> None:
     """測試軸向網格生成。"""
     x_le = 0.02
     x_te = 0.08
     axial_chord = 0.06
 
-    x_grid, j_le, j_te = generator.generate_axial_grid(
-        x_le, x_te, axial_chord, default_grid_params
-    )
+    x_grid, j_le, j_te = generator.generate_axial_grid(x_le, x_te, axial_chord, default_grid_params)
 
     # 檢查總點數
     expected_points = (
@@ -216,9 +212,7 @@ def test_generate_axial_grid(
         assert x_grid[j] > x_grid[j - 1]
 
 
-def test_axial_grid_coverage(
-    generator: GridGenerator, default_grid_params: GridParameters
-) -> None:
+def test_axial_grid_coverage(generator: GridGenerator, default_grid_params: GridParameters) -> None:
     """測試軸向網格覆蓋範圍。"""
     x_le = 0.05
     x_te = 0.10
@@ -252,9 +246,7 @@ def test_generate_blade_row_grid(generator: GridGenerator) -> None:
     axial_chord = 0.06
 
     # 生成網格
-    generator.generate_blade_row_grid(
-        blade_row, r_hub, r_tip, x_le, x_te, axial_chord
-    )
+    generator.generate_blade_row_grid(blade_row, r_hub, r_tip, x_le, x_te, axial_chord)
 
     # 檢查索引已設置
     assert blade_row.j_le > 0

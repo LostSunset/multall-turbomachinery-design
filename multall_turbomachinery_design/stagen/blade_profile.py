@@ -60,9 +60,7 @@ class BladeProfileGenerator:
             y_camber[i] = y_camber[i - 1] + dy
 
         # 計算厚度分佈
-        thickness = self._calculate_thickness_distribution(
-            x_uniform, thickness_params
-        )
+        thickness = self._calculate_thickness_distribution(x_uniform, thickness_params)
 
         # 計算前後緣調整因子
         faclete = self._calculate_le_te_factor(x_uniform, thickness_params)
@@ -110,24 +108,18 @@ class BladeProfileGenerator:
         tk_linear = params.tk_le + x * (params.tk_te - params.tk_le)
 
         # 額外厚度（在最大厚度位置達到峰值）
-        tk_add_max = params.tk_max - (
-            params.tk_le + params.xtk_max * (params.tk_te - params.tk_le)
-        )
+        tk_add_max = params.tk_max - (params.tk_le + params.xtk_max * (params.tk_te - params.tk_le))
 
         # 使用高斯型函數添加額外厚度
         exponent = params.tk_type
-        tk_add = tk_add_max * (
-            1.0 - np.power(np.abs(x_trans - 0.5) / 0.5, exponent)
-        )
+        tk_add = tk_add_max * (1.0 - np.power(np.abs(x_trans - 0.5) / 0.5, exponent))
 
         # 總厚度
         thickness = tk_linear + tk_add
 
         return thickness
 
-    def _calculate_le_te_factor(
-        self, x: np.ndarray, params: ThicknessParameters
-    ) -> np.ndarray:
+    def _calculate_le_te_factor(self, x: np.ndarray, params: ThicknessParameters) -> np.ndarray:
         """計算前後緣調整因子。
 
         在前後緣附近使用橢圓形狀減小厚度。
@@ -146,9 +138,7 @@ class BladeProfileGenerator:
             x_le = x / params.xmod_le
             mask_le = x_le <= 1.0
             x_le_adjusted = np.abs(x_le - 1.0)
-            faclete[mask_le] *= np.sqrt(
-                1.0 - np.power(x_le_adjusted[mask_le], params.le_exp)
-            )
+            faclete[mask_le] *= np.sqrt(1.0 - np.power(x_le_adjusted[mask_le], params.le_exp))
 
         # 後緣調整
         if params.xmod_te > 0.001:
@@ -192,19 +182,11 @@ class BladeProfileGenerator:
 
         # 上表面
         x_upper = x_camber - f_perp * d_perp * np.sin(slope_angle)
-        y_upper = (
-            y_camber
-            + f_perp * d_perp * np.cos(slope_angle)
-            + f_perp1 * half_tk
-        )
+        y_upper = y_camber + f_perp * d_perp * np.cos(slope_angle) + f_perp1 * half_tk
 
         # 下表面
         x_lower = x_camber + f_perp * d_perp * np.sin(slope_angle)
-        y_lower = (
-            y_camber
-            - f_perp * d_perp * np.cos(slope_angle)
-            - f_perp1 * half_tk
-        )
+        y_lower = y_camber - f_perp * d_perp * np.cos(slope_angle) - f_perp1 * half_tk
 
         return x_upper, y_upper, x_lower, y_lower
 
