@@ -381,9 +381,7 @@ class FlowFieldExtractor:
 
         # 總溫和總壓
         data["t_total"] = data["t_static"] + v_mag**2 / (2 * cp)
-        data["p_total"] = data["p"] * (data["t_total"] / data["t_static"]) ** (
-            gamma / (gamma - 1)
-        )
+        data["p_total"] = data["p"] * (data["t_total"] / data["t_static"]) ** (gamma / (gamma - 1))
 
         return data
 
@@ -420,9 +418,7 @@ class FlowFieldExtractor:
         data["mach"] = v_mag / a
 
         data["t_total"] = data["t_static"] + v_mag**2 / (2 * cp)
-        data["p_total"] = data["p"] * (data["t_total"] / data["t_static"]) ** (
-            gamma / (gamma - 1)
-        )
+        data["p_total"] = data["p"] * (data["t_total"] / data["t_static"]) ** (gamma / (gamma - 1))
 
         return data
 

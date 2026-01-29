@@ -60,37 +60,21 @@ class BladeDesignSection:
     k_index: int  # 跨向索引
 
     # 流線面座標
-    x_stream: NDArray[np.float64] = field(
-        default_factory=lambda: np.array([])
-    )  # 軸向座標
-    r_stream: NDArray[np.float64] = field(
-        default_factory=lambda: np.array([])
-    )  # 半徑座標
-    s_merid: NDArray[np.float64] = field(
-        default_factory=lambda: np.array([])
-    )  # 子午線距離
+    x_stream: NDArray[np.float64] = field(default_factory=lambda: np.array([]))  # 軸向座標
+    r_stream: NDArray[np.float64] = field(default_factory=lambda: np.array([]))  # 半徑座標
+    s_merid: NDArray[np.float64] = field(default_factory=lambda: np.array([]))  # 子午線距離
 
     # 葉片幾何
-    frac_chord: NDArray[np.float64] = field(
-        default_factory=lambda: np.array([])
-    )  # 弦長分數
+    frac_chord: NDArray[np.float64] = field(default_factory=lambda: np.array([]))  # 弦長分數
     beta_camber: NDArray[np.float64] = field(
         default_factory=lambda: np.array([])
     )  # 中弧線角度 [rad]
-    thick_upper: NDArray[np.float64] = field(
-        default_factory=lambda: np.array([])
-    )  # 上表面厚度
-    thick_lower: NDArray[np.float64] = field(
-        default_factory=lambda: np.array([])
-    )  # 下表面厚度
+    thick_upper: NDArray[np.float64] = field(default_factory=lambda: np.array([]))  # 上表面厚度
+    thick_lower: NDArray[np.float64] = field(default_factory=lambda: np.array([]))  # 下表面厚度
 
     # 輸出座標
-    rt_upper: NDArray[np.float64] = field(
-        default_factory=lambda: np.array([])
-    )  # R*θ 上表面
-    rt_thickness: NDArray[np.float64] = field(
-        default_factory=lambda: np.array([])
-    )  # R*θ 厚度
+    rt_upper: NDArray[np.float64] = field(default_factory=lambda: np.array([]))  # R*θ 上表面
+    rt_thickness: NDArray[np.float64] = field(default_factory=lambda: np.array([]))  # R*θ 厚度
 
 
 @dataclass
@@ -239,9 +223,7 @@ class BladeRedesigner:
 
         # 設置 R*θ_mid 在中點
         j_mid = len(x_new) // 2
-        theta_shift = (
-            rtheta_mid - (rt_upper[j_mid] - 0.5 * rt_thickness[j_mid])
-        ) / r_new[j_mid]
+        theta_shift = (rtheta_mid - (rt_upper[j_mid] - 0.5 * rt_thickness[j_mid])) / r_new[j_mid]
         rt_upper = rt_upper + theta_shift * r_new
 
         # 存儲結果
@@ -257,9 +239,7 @@ class BladeRedesigner:
 
         return section
 
-    def _smooth_data(
-        self, x: NDArray[np.float64], y: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
+    def _smooth_data(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> NDArray[np.float64]:
         """平滑數據。
 
         Args:
@@ -289,9 +269,7 @@ class InverseDesignSolver:
     迭代修正葉片幾何以達到設計目標。
     """
 
-    def __init__(
-        self, gas: GasProperties, params: InverseDesignParameters | None = None
-    ):
+    def __init__(self, gas: GasProperties, params: InverseDesignParameters | None = None):
         """初始化。
 
         Args:
@@ -356,9 +334,7 @@ class InverseDesignSolver:
 
         # 計算葉片切向力（壓力差積分）
         # 簡化：使用入口出口動量差
-        blade_force = (
-            rho_out * vm_out * (vt_out - vt_in) * 2 * np.pi * r_avg_out / n_blades
-        )
+        blade_force = rho_out * vm_out * (vt_out - vt_in) * 2 * np.pi * r_avg_out / n_blades
 
         return {
             "vx_in": vx_in,
@@ -410,9 +386,7 @@ class InverseDesignSolver:
 
         for _ in range(5):
             sin_a = np.sin(angle)
-            denominator = u_blade / w_rel_out + sin_a - r_avg * vt_in / (
-                r_avg * w_rel_out
-            )
+            denominator = u_blade / w_rel_out + sin_a - r_avg * vt_in / (r_avg * w_rel_out)
             if abs(denominator) > 1e-10:
                 cos_a_new = d_force / denominator
                 cos_a_new = np.clip(cos_a_new, -0.999, 0.999)
@@ -422,9 +396,7 @@ class InverseDesignSolver:
         angle_compatible = np.arcsin(np.clip(sin_a, -1, 1))
         return angle_compatible
 
-    def compute_rotation_angle(
-        self, current_angle: float, target_angle: float
-    ) -> float:
+    def compute_rotation_angle(self, current_angle: float, target_angle: float) -> float:
         """計算葉片旋轉角度。
 
         Args:
@@ -462,9 +434,7 @@ class InverseDesignSolver:
         j_te = self.params.j_trailing_edge
 
         # 計算當前條件
-        conditions = self.compute_current_conditions(
-            flow, j_le, j_te, omega, n_blades
-        )
+        conditions = self.compute_current_conditions(flow, j_le, j_te, omega, n_blades)
 
         result.current_exit_angle = conditions["exit_angle"]
         result.current_blade_force = conditions["blade_force"]
@@ -490,9 +460,7 @@ class InverseDesignSolver:
             # 基於壓力載荷的設計
             if target_pressure_ps is not None and target_pressure_ss is not None:
                 # 計算目標葉片力
-                target_force = self._compute_target_force(
-                    target_pressure_ps, target_pressure_ss
-                )
+                target_force = self._compute_target_force(target_pressure_ps, target_pressure_ss)
                 result.compatible_exit_angle = self.compute_compatible_angle(
                     conditions, target_force, omega
                 )
@@ -503,8 +471,7 @@ class InverseDesignSolver:
         # 計算相容葉片數
         if abs(result.current_blade_force) > 1e-10:
             result.compatible_blade_number = int(
-                n_blades
-                * abs(self.params.target_blade_force / result.current_blade_force)
+                n_blades * abs(self.params.target_blade_force / result.current_blade_force)
             )
 
         # 檢查收斂

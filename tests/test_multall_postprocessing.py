@@ -140,9 +140,7 @@ class TestPerformanceCalculator:
 
         assert calc.gas is gas
 
-    def test_compute_overall_performance(
-        self, gas: GasProperties, turbine_flow: FlowField
-    ) -> None:
+    def test_compute_overall_performance(self, gas: GasProperties, turbine_flow: FlowField) -> None:
         """測試計算整機性能。"""
         calc = PerformanceCalculator(gas)
 
@@ -153,9 +151,7 @@ class TestPerformanceCalculator:
         assert metrics.pressure_ratio > 1  # 渦輪膨脹比 > 1
         assert metrics.inlet_total_temperature > metrics.exit_total_temperature
 
-    def test_compute_stage_performance(
-        self, gas: GasProperties, turbine_flow: FlowField
-    ) -> None:
+    def test_compute_stage_performance(self, gas: GasProperties, turbine_flow: FlowField) -> None:
         """測試計算級性能。"""
         calc = PerformanceCalculator(gas)
 
@@ -168,9 +164,7 @@ class TestPerformanceCalculator:
         assert perf.flow_coefficient > 0
         assert perf.work_coefficient != 0
 
-    def test_compute_entropy_function(
-        self, gas: GasProperties, turbine_flow: FlowField
-    ) -> None:
+    def test_compute_entropy_function(self, gas: GasProperties, turbine_flow: FlowField) -> None:
         """測試計算熵函數。"""
         calc = PerformanceCalculator(gas)
 
@@ -217,9 +211,7 @@ class TestFlowFieldExtractor:
 
         assert extractor.gas is gas
 
-    def test_extract_at_j_station(
-        self, gas: GasProperties, simple_flow: FlowField
-    ) -> None:
+    def test_extract_at_j_station(self, gas: GasProperties, simple_flow: FlowField) -> None:
         """測試提取 J 站數據。"""
         extractor = FlowFieldExtractor(gas)
 
@@ -234,9 +226,7 @@ class TestFlowFieldExtractor:
 
         assert data["rho"].shape == (5, 9)
 
-    def test_extract_at_k_surface(
-        self, gas: GasProperties, simple_flow: FlowField
-    ) -> None:
+    def test_extract_at_k_surface(self, gas: GasProperties, simple_flow: FlowField) -> None:
         """測試提取 K 流線面數據。"""
         extractor = FlowFieldExtractor(gas)
 
@@ -248,9 +238,7 @@ class TestFlowFieldExtractor:
 
         assert data["rho"].shape == (5, 20)
 
-    def test_extract_blade_surface_data(
-        self, gas: GasProperties, simple_flow: FlowField
-    ) -> None:
+    def test_extract_blade_surface_data(self, gas: GasProperties, simple_flow: FlowField) -> None:
         """測試提取葉片表面數據。"""
         extractor = FlowFieldExtractor(gas)
 
@@ -268,9 +256,7 @@ class TestFlowFieldExtractor:
         # 壓力面壓力係數應該大於吸力面
         assert np.mean(data["cp_ps"]) > np.mean(data["cp_ss"])
 
-    def test_create_visualization_data(
-        self, gas: GasProperties, simple_flow: FlowField
-    ) -> None:
+    def test_create_visualization_data(self, gas: GasProperties, simple_flow: FlowField) -> None:
         """測試創建可視化數據。"""
         extractor = FlowFieldExtractor(gas)
 
@@ -345,9 +331,7 @@ class TestResultExporter:
         """測試導出性能摘要。"""
         exporter = ResultExporter(gas)
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             output_path = f.name
 
         exporter.export_performance_summary(sample_metrics, output_path)
@@ -376,9 +360,7 @@ class TestResultExporter:
             "p": np.array([[100000.0, 110000.0], [95000.0, 105000.0]]),
         }
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             output_path = f.name
 
         exporter.export_station_data_csv(data, output_path)
@@ -393,15 +375,11 @@ class TestResultExporter:
 
         Path(output_path).unlink()
 
-    def test_export_flow_field_binary(
-        self, gas: GasProperties, simple_flow: FlowField
-    ) -> None:
+    def test_export_flow_field_binary(self, gas: GasProperties, simple_flow: FlowField) -> None:
         """測試導出流場為二進制格式。"""
         exporter = ResultExporter(gas)
 
-        with tempfile.NamedTemporaryFile(
-            mode="wb", suffix=".bin", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".bin", delete=False) as f:
             output_path = f.name
 
         exporter.export_flow_field_binary(simple_flow, output_path)
@@ -421,9 +399,7 @@ class TestResultExporter:
 
         residuals = [1e-2, 5e-3, 2e-3, 1e-3, 5e-4]
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             output_path = f.name
 
         exporter.export_convergence_history(residuals, output_path)

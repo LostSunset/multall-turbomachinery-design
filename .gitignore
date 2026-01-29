@@ -75,3 +75,4 @@ multall-open_20260120.zip
 
 # Ruff
 .ruff_cache/
+output/

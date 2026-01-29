@@ -212,9 +212,7 @@ class TestInverseDesignSolver:
 
         return flow
 
-    def test_init(
-        self, gas: GasProperties, params: InverseDesignParameters
-    ) -> None:
+    def test_init(self, gas: GasProperties, params: InverseDesignParameters) -> None:
         """測試初始化。"""
         solver = InverseDesignSolver(gas, params)
 
@@ -285,17 +283,13 @@ class TestInverseDesignSolver:
         """測試迭代。"""
         solver = InverseDesignSolver(gas, params)
 
-        result = solver.iterate(
-            small_flow, omega=1000.0, n_blades=50
-        )
+        result = solver.iterate(small_flow, omega=1000.0, n_blades=50)
 
         assert isinstance(result, InverseDesignResult)
         assert result.iterations == 1
         assert len(solver.history) == 1
 
-    def test_iterate_pressure_loading(
-        self, gas: GasProperties, small_flow: FlowField
-    ) -> None:
+    def test_iterate_pressure_loading(self, gas: GasProperties, small_flow: FlowField) -> None:
         """測試基於壓力載荷的迭代。"""
         params = InverseDesignParameters(
             enabled=True,
@@ -320,9 +314,7 @@ class TestInverseDesignSolver:
 
         assert isinstance(result, InverseDesignResult)
 
-    def test_iterate_blade_force(
-        self, gas: GasProperties, small_flow: FlowField
-    ) -> None:
+    def test_iterate_blade_force(self, gas: GasProperties, small_flow: FlowField) -> None:
         """測試基於葉片力的迭代。"""
         params = InverseDesignParameters(
             enabled=True,
@@ -333,9 +325,7 @@ class TestInverseDesignSolver:
         )
         solver = InverseDesignSolver(gas, params)
 
-        result = solver.iterate(
-            small_flow, omega=1000.0, n_blades=50
-        )
+        result = solver.iterate(small_flow, omega=1000.0, n_blades=50)
 
         assert isinstance(result, InverseDesignResult)
 
