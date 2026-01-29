@@ -100,6 +100,9 @@ class StagenPanel(QWidget):
         angle_group.add_float(
             "stagger_angle", "安裝角:", value=-15.0, minimum=-89.0, maximum=89.0, suffix="°"
         )
+        angle_group.add_float(
+            "twist_angle", "扭轉角:", value=-10.0, minimum=-45.0, maximum=45.0, suffix="°"
+        )
 
         # 堆疊參數
         stack_group = self._param_form.add_group("stacking", "堆疊參數")
@@ -273,10 +276,14 @@ class StagenPanel(QWidget):
                 x = np.concatenate([x_upper, x_lower[1:]])
                 y = np.concatenate([y_upper, y_lower[1:]])
 
-                # 應用安裝角旋轉
-                stagger_rad = np.radians(angles["stagger_angle"])
-                x_rot = x * np.cos(stagger_rad) - y * np.sin(stagger_rad)
-                y_rot = x * np.sin(stagger_rad) + y * np.cos(stagger_rad)
+                # 應用安裝角 + 扭轉角旋轉
+                # 扭轉角從根部 (span=0) 線性變化到葉尖 (span=1)
+                base_stagger = angles["stagger_angle"]
+                twist = angles.get("twist_angle", 0.0) * span  # 展向扭轉
+                total_angle = base_stagger + twist
+                angle_rad = np.radians(total_angle)
+                x_rot = x * np.cos(angle_rad) - y * np.sin(angle_rad)
+                y_rot = x * np.sin(angle_rad) + y * np.cos(angle_rad)
 
                 z = np.full_like(x, r)
 
@@ -296,7 +303,7 @@ class StagenPanel(QWidget):
                         f"{chord_k:.4f}",
                         f"{angles['inlet_angle']:.1f}",
                         f"{angles['outlet_angle']:.1f}",
-                        f"{angles['stagger_angle']:.1f}",
+                        f"{total_angle:.1f}",  # 顯示實際安裝角（含扭轉）
                     ]
                 )
 
