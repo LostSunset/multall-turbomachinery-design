@@ -101,12 +101,19 @@
 - ✅ STAGEN 面板（葉片幾何參數、網格設定、截面數據）
 - ✅ MULTALL 面板（求解器設定、進度顯示、收斂監測）
 - ✅ 選單系統（檔案、編輯、工具、說明）
-- ⏳ 結果視覺化（matplotlib 整合）
+
+### Visualization - 結果視覺化 ✅ 完成
+
+- ✅ 速度三角形繪圖（VelocityTrianglePlotter）
+- ✅ 葉片截面繪圖（BladePlotter - 2D 截面、葉柵、3D 表面）
+- ✅ 流場繪圖（FlowPlotter - 等值線、流線、向量場、子午面）
+- ✅ 收斂歷史繪圖（ConvergencePlotter - 殘差、性能、各級對比）
+- ✅ 便捷函數（plot_velocity_triangle, plot_blade_profile, plot_contour 等）
 
 ### 測試與覆蓋率
 
-- ✅ 299 個測試，全部通過
-- ✅ 73% 程式碼覆蓋率（UI 需 pytest-qt）
+- ✅ 318 個測試，全部通過
+- ✅ 74% 程式碼覆蓋率
 - ✅ CI/CD 自動化
 
 ## 🚀 快速開始
