@@ -472,12 +472,17 @@ class ArtificialViscosity:
         sensor = self.compute_pressure_sensor(flow.p)
 
         # 二階和四階係數
+        # ε^(2) 在激波附近激活（通過壓力感測器）
+        # ε^(4) 提供背景耗散，但在激波附近減小
         eps2 = self.sf_2nd * sensor
-        # TODO: 實現四階耗散
-        _eps4 = np.maximum(0.0, self.sf_4th * self.sf_2nd - eps2)
+        eps4 = np.maximum(0.0, self.sf_4th - eps2)
 
         if direction == "x":
-            # J 方向二階耗散
+            # J 方向耗散
+            # 二階耗散：Δ^2 = (U_{j+1} - 2*U_j + U_{j-1})
+            # 四階耗散：Δ^4 = (U_{j+2} - 4*U_{j+1} + 6*U_j - 4*U_{j-1} + U_{j-2})
+
+            # 二階耗散 (j = 1 到 jm-2)
             for j in range(1, jm - 1):
                 eps2_face = 0.5 * (eps2[:, j, :] + eps2[:, j + 1, :])
                 d2_rho = flow.rho[:, j + 1, :] - 2.0 * flow.rho[:, j, :] + flow.rho[:, j - 1, :]
@@ -496,5 +501,55 @@ class ArtificialViscosity:
 
                 d2_roe = flow.roe[:, j + 1, :] - 2.0 * flow.roe[:, j, :] + flow.roe[:, j - 1, :]
                 diss_energy[:, j, :] = eps2_face * d2_roe
+
+            # 四階耗散 (j = 2 到 jm-3，需要更多鄰點)
+            for j in range(2, jm - 2):
+                eps4_face = 0.5 * (eps4[:, j, :] + eps4[:, j + 1, :])
+
+                # 四階差分：Δ^4 = U_{j+2} - 4*U_{j+1} + 6*U_j - 4*U_{j-1} + U_{j-2}
+                d4_rho = (
+                    flow.rho[:, j + 2, :]
+                    - 4.0 * flow.rho[:, j + 1, :]
+                    + 6.0 * flow.rho[:, j, :]
+                    - 4.0 * flow.rho[:, j - 1, :]
+                    + flow.rho[:, j - 2, :]
+                )
+                diss_mass[:, j, :] -= eps4_face * d4_rho
+
+                d4_rovx = (
+                    flow.rovx[:, j + 2, :]
+                    - 4.0 * flow.rovx[:, j + 1, :]
+                    + 6.0 * flow.rovx[:, j, :]
+                    - 4.0 * flow.rovx[:, j - 1, :]
+                    + flow.rovx[:, j - 2, :]
+                )
+                diss_momx[:, j, :] -= eps4_face * d4_rovx
+
+                d4_rovr = (
+                    flow.rovr[:, j + 2, :]
+                    - 4.0 * flow.rovr[:, j + 1, :]
+                    + 6.0 * flow.rovr[:, j, :]
+                    - 4.0 * flow.rovr[:, j - 1, :]
+                    + flow.rovr[:, j - 2, :]
+                )
+                diss_momr[:, j, :] -= eps4_face * d4_rovr
+
+                d4_rorvt = (
+                    flow.rorvt[:, j + 2, :]
+                    - 4.0 * flow.rorvt[:, j + 1, :]
+                    + 6.0 * flow.rorvt[:, j, :]
+                    - 4.0 * flow.rorvt[:, j - 1, :]
+                    + flow.rorvt[:, j - 2, :]
+                )
+                diss_momt[:, j, :] -= eps4_face * d4_rorvt
+
+                d4_roe = (
+                    flow.roe[:, j + 2, :]
+                    - 4.0 * flow.roe[:, j + 1, :]
+                    + 6.0 * flow.roe[:, j, :]
+                    - 4.0 * flow.roe[:, j - 1, :]
+                    + flow.roe[:, j - 2, :]
+                )
+                diss_energy[:, j, :] -= eps4_face * d4_roe
 
         return diss_mass, diss_momx, diss_momr, diss_momt, diss_energy
