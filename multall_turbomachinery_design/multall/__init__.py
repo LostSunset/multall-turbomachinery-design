@@ -30,6 +30,10 @@ from .data_structures import (
     ViscousModel,
     ViscousParameters,
 )
+from .flux import (
+    ArtificialViscosity,
+    FluxCalculator,
+)
 from .gas_properties import (
     GasCalculator,
     create_air_calculator,
@@ -43,6 +47,11 @@ from .io_handler import (
 from .solver import (
     MultallSolver,
     create_simple_turbine_solver,
+)
+from .time_stepping import (
+    ConvergenceMonitor,
+    TimeStepMethod,
+    TimeStepper,
 )
 
 __all__ = [
@@ -74,4 +83,11 @@ __all__ = [
     # 求解器
     "MultallSolver",
     "create_simple_turbine_solver",
+    # 通量計算
+    "FluxCalculator",
+    "ArtificialViscosity",
+    # 時間步進
+    "TimeStepper",
+    "TimeStepMethod",
+    "ConvergenceMonitor",
 ]
