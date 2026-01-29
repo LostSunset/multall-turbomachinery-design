@@ -157,6 +157,26 @@ uv pip install -e ".[cad]"    # CAD 輸出（需 Python 3.12/3.13）
 uv pip install -e ".[steam]"  # IAPWS-IF97 蒸汽性質
 ```
 
+### 安裝 CadQuery（CAD 輸出功能）
+
+CadQuery 用於生成 3D CAD 檔案（STEP/STL/IGES），**僅支援 Python 3.12 和 3.13**。
+
+```bash
+# 方式一：透過專案可選依賴安裝（推薦）
+uv venv .venv312 --python 3.12
+.venv312\Scripts\activate      # Windows
+source .venv312/bin/activate   # Linux/Mac
+uv pip install -e ".[cad]"
+
+# 方式二：單獨安裝 CadQuery
+pip install cadquery
+
+# 驗證安裝
+python -c "import cadquery; print(f'CadQuery {cadquery.__version__} 安裝成功')"
+```
+
+> ⚠️ **注意**：Python 3.14 不支援 CadQuery。如需 CAD 功能，請使用 Python 3.12 或 3.13。
+
 ### 啟動圖形介面
 
 ```bash
