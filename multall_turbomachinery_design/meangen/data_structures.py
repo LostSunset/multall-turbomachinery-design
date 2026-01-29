@@ -22,6 +22,7 @@ class FlowType(Enum):
 
     AXIAL = "AXI"  # 軸向流
     MIXED = "MIX"  # 混流
+    RADIAL = "RAD"  # 徑向流
 
 
 class InputType(Enum):
