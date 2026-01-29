@@ -22,11 +22,13 @@ from .data_structures import (
     StreamSurface3D,
     ThicknessParameters,
 )
+from .grid_generator import GridGenerator
 from .projection import StreamSurfaceProjector
 
 __all__ = [
     "BladeProfileGenerator",
     "StreamSurfaceProjector",
+    "GridGenerator",
     "BladeInputType",
     "BladeProfile2D",
     "StreamSurface3D",
