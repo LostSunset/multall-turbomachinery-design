@@ -12,10 +12,14 @@ from pathlib import Path
 from .blade_geometry import BladeGeometryGenerator
 from .data_structures import (
     CONSTANTS,
+    FlowState,
     FlowType,
     InputType,
+    MachineType,
     MeangenConfig,
     StageDesign,
+    StageThermodynamics,
+    VelocityTriangle,
 )
 from .gas_properties import PerfectGasCalculator
 from .io_handler import MeangenInputReader, MeangenOutputWriter, StagenOutputWriter
@@ -84,16 +88,12 @@ class MeanLineSolver:
 
         outlet = self.velocity_calc.create_velocity_triangle(u, vm, alpha_rotor_out, is_rotor=True)
 
-        # 計算流場
-        # TODO: 實現完整的熱力學計算
-        # - 計算出口總溫（考慮做功）
-        # - 計算出口總壓（考慮效率）
-        # - 計算馬赫數
-        # - 檢查壅塞
-
         # 計算級性能
         stage.work_output = u * (inlet.vtheta - outlet.vtheta)  # 比功 [J/kg]
         stage.loading_coefficient = stage.work_output / (u * u)
+
+        # 計算熱力學狀態
+        stage.thermodynamics = self._calculate_stage_thermodynamics(stage, inlet, outlet)
 
         # 保存速度三角形
         stage.inlet_triangle = inlet
@@ -149,10 +149,183 @@ class MeanLineSolver:
             deviation=stage.devn2 if stage.devn2 else 0.0,
         )
 
+    def _calculate_stage_thermodynamics(
+        self,
+        stage: StageDesign,
+        inlet: VelocityTriangle,
+        outlet: VelocityTriangle,
+    ) -> StageThermodynamics:
+        """計算級熱力學狀態。
+
+        Args:
+            stage: 級設計
+            inlet: 進口速度三角形
+            outlet: 出口速度三角形
+
+        Returns:
+            級熱力學狀態
+        """
+        # 進口總條件（來自配置）
+        poin = self.config.gas.poin * 1e5  # bar -> Pa
+        toin = self.config.gas.toin  # K
+
+        # 進口總焓和熵
+        hoin = self.gas_calc.calculate_enthalpy_from_temperature(toin)
+        sin = 0.0  # 參考熵
+
+        # 進口速度
+        v_in = math.sqrt(inlet.vm**2 + inlet.vtheta**2)
+
+        # 計算進口靜態條件
+        inlet_state = self.gas_calc.calculate_properties(
+            ho=hoin, s=sin, v=v_in, poin=poin, hoin=hoin, sin=sin
+        )
+
+        # 出口速度
+        v_out = math.sqrt(outlet.vm**2 + outlet.vtheta**2)
+
+        # 出口總焓（考慮做功）
+        # 對於渦輪，做功為正，總焓減少
+        # 對於壓縮機，做功為負（輸入功），總焓增加
+        if self.config.machine_type == MachineType.TURBINE:
+            ho_out = hoin - stage.work_output
+        else:  # 壓縮機
+            ho_out = hoin + abs(stage.work_output)
+
+        # 計算等熵出口狀態（理想情況）
+        # 等熵過程：熵不變
+        outlet_isentropic = self.gas_calc.calculate_properties(
+            ho=ho_out, s=sin, v=v_out, poin=poin, hoin=hoin, sin=sin
+        )
+
+        # 實際出口狀態（考慮效率）
+        eta = stage.efficiency
+
+        if self.config.machine_type == MachineType.TURBINE:
+            # 渦輪：實際焓降 = 效率 × 等熵焓降
+            # 但我們用的是實際做功，所以需要計算實際熵增
+            dh_isentropic = hoin - outlet_isentropic.ho
+            dh_actual = stage.work_output
+
+            # 實際出口總焓
+            ho_actual = hoin - dh_actual
+
+            # 計算熵增（損失）
+            if eta > 0 and eta < 1:
+                # 損失功
+                loss_work = dh_actual * (1 / eta - 1)
+                # 熵增 ≈ 損失功 / 平均溫度
+                t_avg = 0.5 * (inlet_state.to + outlet_isentropic.to)
+                ds = loss_work / t_avg if t_avg > 0 else 0.0
+            else:
+                ds = 0.0
+
+            s_out = sin + ds
+
+        else:  # 壓縮機
+            # 壓縮機：等熵功 = 效率 × 實際功
+            dh_actual = abs(stage.work_output)
+            dh_isentropic = eta * dh_actual
+
+            ho_actual = hoin + dh_actual
+
+            # 計算熵增
+            if eta > 0:
+                loss_work = dh_actual - dh_isentropic
+                t_avg = 0.5 * (inlet_state.to + outlet_isentropic.to)
+                ds = loss_work / t_avg if t_avg > 0 else 0.0
+            else:
+                ds = 0.0
+
+            s_out = sin + ds
+
+        # 計算實際出口狀態
+        outlet_state = self.gas_calc.calculate_properties(
+            ho=ho_actual, s=s_out, v=v_out, poin=poin, hoin=hoin, sin=sin
+        )
+
+        # 計算壓比和溫比
+        if inlet_state.po > 0:
+            pressure_ratio = outlet_state.po / inlet_state.po
+        else:
+            pressure_ratio = 1.0
+
+        if inlet_state.to > 0:
+            temperature_ratio = outlet_state.to / inlet_state.to
+        else:
+            temperature_ratio = 1.0
+
+        # 壅塞檢查
+        is_choked = outlet_state.mach >= 1.0 or inlet_state.mach >= 1.0
+
+        # 計算多變效率（更適合多級分析）
+        if self.config.machine_type == MachineType.TURBINE:
+            # 渦輪多變效率
+            if pressure_ratio < 1.0 and temperature_ratio < 1.0:
+                gamma = self.gas_calc.gamma
+                ln_pr = math.log(pressure_ratio)
+                ln_tr = math.log(temperature_ratio)
+                if ln_tr != 0:
+                    polytropic_eta = (gamma - 1) / gamma * ln_pr / ln_tr
+                else:
+                    polytropic_eta = eta
+            else:
+                polytropic_eta = eta
+        else:
+            # 壓縮機多變效率
+            if pressure_ratio > 1.0 and temperature_ratio > 1.0:
+                gamma = self.gas_calc.gamma
+                ln_pr = math.log(pressure_ratio)
+                ln_tr = math.log(temperature_ratio)
+                if ln_pr != 0:
+                    polytropic_eta = (gamma - 1) / gamma * ln_tr / ln_pr
+                else:
+                    polytropic_eta = eta
+            else:
+                polytropic_eta = eta
+
+        # 保存等熵焓變
+        stage.dho = stage.work_output
+        stage.dho_is = abs(hoin - outlet_isentropic.ho)
+
+        return StageThermodynamics(
+            inlet_state=inlet_state,
+            outlet_state=outlet_state,
+            outlet_isentropic=outlet_isentropic,
+            isentropic_efficiency=eta,
+            polytropic_efficiency=polytropic_eta,
+            pressure_ratio=pressure_ratio,
+            temperature_ratio=temperature_ratio,
+            is_choked=is_choked,
+        )
+
     def solve_all_stages(self) -> None:
         """求解所有級。"""
-        for stage in self.config.stages:
+        # 儲存累積狀態用於多級計算
+        self._cumulative_states: list[StageThermodynamics] = []
+
+        for i, stage in enumerate(self.config.stages):
+            # 如果不是第一級，更新進口條件
+            if i > 0 and self._cumulative_states:
+                prev_thermo = self._cumulative_states[-1]
+                # 更新配置中的進口條件為前一級出口條件
+                self._update_inlet_conditions(prev_thermo.outlet_state)
+
             self.solve_stage(stage)
+
+            # 儲存熱力學狀態
+            if hasattr(stage, "thermodynamics"):
+                self._cumulative_states.append(stage.thermodynamics)
+
+    def _update_inlet_conditions(self, prev_outlet: FlowState) -> None:
+        """更新進口條件（用於多級計算）。
+
+        Args:
+            prev_outlet: 前一級出口狀態
+        """
+        # 更新配置中的進口總壓和總溫
+        self.config.gas.poin = prev_outlet.po / 1e5  # Pa -> bar
+        self.config.gas.toin = prev_outlet.to
 
     def calculate_overall_performance(self) -> dict[str, float]:
         """計算整體性能。
@@ -163,15 +336,103 @@ class MeanLineSolver:
         total_work = sum(stage.work_output for stage in self.config.stages)
         power = total_work * self.config.mass_flow / 1000.0  # kW
 
-        # 計算壓比和溫比
-        # TODO: 實現完整的多級疊加計算
+        # 計算整體壓比和溫比（多級疊加）
+        overall_pressure_ratio = 1.0
+        overall_temperature_ratio = 1.0
 
-        return {
+        # 收集各級效率和馬赫數
+        stage_efficiencies = []
+        stage_mach_numbers = []
+        choked_stages = []
+
+        for i, stage in enumerate(self.config.stages):
+            if hasattr(stage, "thermodynamics") and stage.thermodynamics is not None:
+                thermo = stage.thermodynamics
+                overall_pressure_ratio *= thermo.pressure_ratio
+                overall_temperature_ratio *= thermo.temperature_ratio
+                stage_efficiencies.append(thermo.isentropic_efficiency)
+
+                # 記錄進出口馬赫數
+                stage_mach_numbers.append(
+                    {
+                        "stage": i + 1,
+                        "inlet_mach": thermo.inlet_state.mach,
+                        "outlet_mach": thermo.outlet_state.mach,
+                    }
+                )
+
+                # 檢查壅塞
+                if thermo.is_choked:
+                    choked_stages.append(i + 1)
+
+        # 計算整體等熵效率
+        from .data_structures import MachineType
+
+        if self.config.machine_type == MachineType.TURBINE:
+            # 渦輪整體效率
+            if len(stage_efficiencies) > 0:
+                # 使用總功和等熵總功計算
+                total_dho_is = sum(
+                    stage.dho_is for stage in self.config.stages if stage.dho_is > 0
+                )
+                if total_dho_is > 0:
+                    overall_efficiency = total_work / total_dho_is
+                else:
+                    overall_efficiency = sum(stage_efficiencies) / len(stage_efficiencies)
+            else:
+                overall_efficiency = 0.9
+        else:
+            # 壓縮機整體效率
+            if len(stage_efficiencies) > 0:
+                total_dho_is = sum(
+                    stage.dho_is for stage in self.config.stages if stage.dho_is > 0
+                )
+                if total_work > 0:
+                    overall_efficiency = total_dho_is / abs(total_work)
+                else:
+                    overall_efficiency = sum(stage_efficiencies) / len(stage_efficiencies)
+            else:
+                overall_efficiency = 0.85
+
+        # 計算整體多變效率
+        if overall_pressure_ratio != 1.0 and overall_temperature_ratio != 1.0:
+            gamma = self.gas_calc.gamma
+            ln_pr = math.log(overall_pressure_ratio)
+            ln_tr = math.log(overall_temperature_ratio)
+
+            if self.config.machine_type == MachineType.TURBINE:
+                if ln_tr != 0:
+                    overall_polytropic_efficiency = (gamma - 1) / gamma * ln_pr / ln_tr
+                else:
+                    overall_polytropic_efficiency = overall_efficiency
+            else:
+                if ln_pr != 0:
+                    overall_polytropic_efficiency = (gamma - 1) / gamma * ln_tr / ln_pr
+                else:
+                    overall_polytropic_efficiency = overall_efficiency
+        else:
+            overall_polytropic_efficiency = overall_efficiency
+
+        # 構建結果字典
+        result = {
             "total_work": total_work,  # J/kg
             "power": power,  # kW
             "mass_flow": self.config.mass_flow,  # kg/s
             "stages": self.config.nstages,
+            "overall_pressure_ratio": overall_pressure_ratio,
+            "overall_temperature_ratio": overall_temperature_ratio,
+            "overall_isentropic_efficiency": overall_efficiency,
+            "overall_polytropic_efficiency": overall_polytropic_efficiency,
         }
+
+        # 添加壅塞警告
+        if choked_stages:
+            result["choked_stages"] = choked_stages
+            result["choking_warning"] = True
+        else:
+            result["choking_warning"] = False
+
+        return result
 
     @classmethod
     def from_input_file(cls, input_file: str | Path) -> MeanLineSolver:

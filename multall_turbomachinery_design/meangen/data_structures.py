@@ -170,6 +170,9 @@ class StageDesign:
     # 扭轉控制 (v17.4)
     frac_twist: float = 1.0  # 扭轉比例 (0=無扭轉, 1=完全自由渦)
 
+    # 熱力學狀態（由求解器計算）
+    thermodynamics: StageThermodynamics | None = None
+
 
 @dataclass
 class MeangenConfig:
@@ -225,6 +228,30 @@ class FlowState:
 
     # 濕度（蒸汽）
     wetness: float = 0.0  # 濕度分數
+
+
+@dataclass
+class StageThermodynamics:
+    """級熱力學狀態。"""
+
+    # 進口狀態
+    inlet_state: FlowState
+    # 出口狀態
+    outlet_state: FlowState
+    # 等熵出口狀態（理想狀態）
+    outlet_isentropic: FlowState
+
+    # 效率和性能
+    isentropic_efficiency: float = 0.0
+    polytropic_efficiency: float = 0.0
+
+    # 壓比和溫比
+    pressure_ratio: float = 1.0
+    temperature_ratio: float = 1.0
+
+    # 壅塞檢查
+    is_choked: bool = False
+    critical_mach: float = 1.0
 
 
 # 常數定義
