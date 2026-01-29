@@ -129,10 +129,15 @@ class StagenPanel(QWidget):
         self._load_btn = QPushButton("載入檔案")
         self._gen_btn = QPushButton("生成幾何")
         self._export_btn = QPushButton("輸出檔案")
+        self._cad_btn = QPushButton("輸出 CAD")
         button_layout.addWidget(self._load_btn)
         button_layout.addWidget(self._gen_btn)
         button_layout.addWidget(self._export_btn)
+        button_layout.addWidget(self._cad_btn)
         left_layout.addLayout(button_layout)
+
+        # 儲存生成的截面數據供 CAD 使用
+        self._generated_sections = None
 
         splitter.addWidget(left_widget)
 
@@ -173,6 +178,7 @@ class StagenPanel(QWidget):
         self._load_btn.clicked.connect(self._on_load_clicked)
         self._gen_btn.clicked.connect(self._on_generate_clicked)
         self._export_btn.clicked.connect(self._on_export_clicked)
+        self._cad_btn.clicked.connect(self._on_cad_export_clicked)
 
     @Slot()
     def _on_load_clicked(self) -> None:
@@ -231,16 +237,63 @@ class StagenPanel(QWidget):
                 }
             )
 
-            # 生成示例截面數據
+            # 生成截面數據
             self._section_table.clear_data()
             n_sections = mesh["nk"]
+            self._generated_sections = []  # 儲存供 CAD 使用
+
+            import numpy as np
+
             for k in range(n_sections):
-                span = k / (n_sections - 1)
+                span = k / (n_sections - 1) if n_sections > 1 else 0.5
+                r = 0.3 + 0.1 * span  # 半徑
+
+                # 計算此截面的弦長（可選：隨展向變化）
+                chord_k = blade["chord"] * (1 - 0.1 * span)
+
+                # 生成翼型座標（NACA 4 位數型）
+                n_pts = 50
+                t = blade["max_thickness"]  # 最大厚度比
+
+                # 上下表面
+                x_c = np.linspace(0.001, 1, n_pts // 2)
+                y_t = 5 * t * (
+                    0.2969 * np.sqrt(x_c)
+                    - 0.1260 * x_c
+                    - 0.3516 * x_c**2
+                    + 0.2843 * x_c**3
+                    - 0.1015 * x_c**4
+                )
+
+                x_upper = chord_k * x_c
+                y_upper = chord_k * y_t
+                x_lower = chord_k * x_c[::-1]
+                y_lower = -chord_k * y_t[::-1]
+
+                x = np.concatenate([x_upper, x_lower[1:]])
+                y = np.concatenate([y_upper, y_lower[1:]])
+
+                # 應用安裝角旋轉
+                stagger_rad = np.radians(angles["stagger_angle"])
+                x_rot = x * np.cos(stagger_rad) - y * np.sin(stagger_rad)
+                y_rot = x * np.sin(stagger_rad) + y * np.cos(stagger_rad)
+
+                z = np.full_like(x, r)
+
+                self._generated_sections.append({
+                    "span": span,
+                    "radius": r,
+                    "chord": chord_k,
+                    "x": x_rot,
+                    "y": y_rot,
+                    "z": z,
+                })
+
                 self._section_table.add_row(
                     [
                         str(k),
-                        f"{0.3 + 0.1 * span:.4f}",
-                        f"{blade['chord']:.4f}",
+                        f"{r:.4f}",
+                        f"{chord_k:.4f}",
                         f"{angles['inlet_angle']:.1f}",
                         f"{angles['outlet_angle']:.1f}",
                         f"{angles['stagger_angle']:.1f}",
@@ -248,6 +301,7 @@ class StagenPanel(QWidget):
                 )
 
             self._log_text.append_text("\n幾何生成完成！")
+            self._log_text.append_text(f"\n已生成 {n_sections} 個截面，可輸出 CAD")
             self.statusChanged.emit("生成完成")
 
         except Exception as e:
@@ -275,6 +329,93 @@ class StagenPanel(QWidget):
             QMessageBox.information(self, "完成", f"檔案已輸出到:\n{dir_path}")
         except Exception as e:
             QMessageBox.critical(self, "輸出錯誤", str(e))
+
+    @Slot()
+    def _on_cad_export_clicked(self) -> None:
+        """處理 CAD 輸出按鈕點擊。"""
+        # 檢查是否有生成的截面
+        if not self._generated_sections:
+            QMessageBox.warning(self, "警告", "請先點擊「生成幾何」生成葉片截面")
+            return
+
+        # 檢查 CAD 功能是否可用
+        try:
+            from multall_turbomachinery_design.cad import check_cad_available
+
+            if not check_cad_available():
+                QMessageBox.warning(
+                    self,
+                    "CAD 功能不可用",
+                    "CadQuery 未安裝或不支援當前 Python 版本。\n\n"
+                    "CAD 功能需要 Python 3.12 或 3.13。\n"
+                    "安裝方式: pip install multall-turbomachinery-design[cad]",
+                )
+                return
+        except ImportError:
+            QMessageBox.warning(
+                self,
+                "CAD 功能不可用",
+                "CAD 模組未安裝。\n\n"
+                "安裝方式: pip install multall-turbomachinery-design[cad]",
+            )
+            return
+
+        # 選擇輸出檔案
+        file_path, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "輸出 CAD 檔案",
+            "blade.step",
+            "STEP 檔案 (*.step *.stp);;STL 檔案 (*.stl);;IGES 檔案 (*.iges *.igs)",
+        )
+
+        if not file_path:
+            return
+
+        try:
+            from pathlib import Path
+
+            import numpy as np
+
+            from multall_turbomachinery_design.cad import BladeCADExporter
+            from multall_turbomachinery_design.cad.blade_cad import BladeSection
+
+            self._log_text.append_text("\n\n開始生成 CAD 模型...")
+            self.statusChanged.emit("生成 CAD 中...")
+
+            # 建立截面
+            sections = []
+            for sec_data in self._generated_sections:
+                section = BladeSection(
+                    span_fraction=sec_data["span"],
+                    x=np.array(sec_data["x"]),
+                    y=np.array(sec_data["y"]),
+                    z=np.array(sec_data["z"]),
+                )
+                sections.append(section)
+
+            # 建立導出器並生成葉片
+            exporter = BladeCADExporter()
+            exporter.create_blade_from_sections(sections)
+
+            # 導出檔案
+            output_path = Path(file_path)
+            exporter.export(output_path)
+
+            file_size = output_path.stat().st_size
+            self._log_text.append_text(f"\nCAD 檔案已輸出: {output_path}")
+            self._log_text.append_text(f"檔案大小: {file_size:,} bytes")
+            self.statusChanged.emit("CAD 輸出完成")
+
+            QMessageBox.information(
+                self,
+                "CAD 輸出完成",
+                f"CAD 檔案已成功輸出:\n{output_path}\n\n檔案大小: {file_size:,} bytes",
+            )
+
+        except Exception as e:
+            self._log_text.append_text(f"\nCAD 輸出錯誤: {e}")
+            self.statusChanged.emit("CAD 輸出錯誤")
+            QMessageBox.critical(self, "CAD 輸出錯誤", str(e))
 
     def get_state(self) -> dict:
         """獲取面板狀態（用於專案儲存）。
@@ -304,18 +445,20 @@ class StagenPanel(QWidget):
         # 重置參數為預設值
         blade_group = self._param_form.get_group("blade")
         if blade_group:
-            blade_group.set_value("n_sections", 5)
-            blade_group.set_value("n_chord", 30)
-            blade_group.set_value("n_span", 11)
+            blade_group.set_value("n_blades", 50)
+            blade_group.set_value("chord", 0.05)
+            blade_group.set_value("pitch", 0.03)
+            blade_group.set_value("max_thickness", 0.10)
 
-        thickness_group = self._param_form.get_group("thickness")
-        if thickness_group:
-            thickness_group.set_value("tk_max", 0.08)
-            thickness_group.set_value("xtk_max", 0.45)
-            thickness_group.set_value("tk_le", 0.02)
-            thickness_group.set_value("tk_te", 0.005)
+        angle_group = self._param_form.get_group("angles")
+        if angle_group:
+            angle_group.set_value("inlet_angle", 30.0)
+            angle_group.set_value("outlet_angle", -60.0)
+            angle_group.set_value("stagger_angle", -15.0)
 
         # 清除結果
-        self._coord_table.clear_data()
+        self._section_table.clear_data()
+        self._geom_display.clear_data()
         self._log_text.clear_text()
+        self._generated_sections = None
         self.statusChanged.emit("參數已重置")
