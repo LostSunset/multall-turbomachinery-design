@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHONIOENCODING: utf-8
+  LANG: en_US.UTF-8
+  LC_ALL: en_US.UTF-8
+
+jobs:
+  lint:
+    name: 程式碼檢查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安裝 uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: 設置 Python 3.14
+        run: uv python install 3.14
+
+      - name: 安裝依賴
+        run: uv sync --all-extras
+
+      - name: 執行 Ruff 檢查
+        run: uv run ruff check .
+
+      - name: 執行 Ruff 格式檢查
+        run: uv run ruff format --check .
+
+  test:
+    name: 測試
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.14"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安裝 uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: 設置 Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: 安裝依賴
+        run: uv sync --all-extras
+
+      - name: 執行測試
+        run: uv run pytest tests/ -v --cov=multall_turbomachinery_design --cov-report=xml --cov-report=term-missing
+        env:
+          PYTHONIOENCODING: utf-8
+
+      - name: 上傳覆蓋率報告
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v5
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+  type-check:
+    name: 類型檢查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安裝 uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: 設置 Python 3.14
+        run: uv python install 3.14
+
+      - name: 安裝依賴
+        run: uv sync --all-extras
+
+      - name: 執行 MyPy
+        run: uv run mypy multall_turbomachinery_design/ || true
+        # 初期允許類型檢查失敗，逐步改善

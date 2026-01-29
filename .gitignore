@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+.venv314/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+
+# Compiled Fortran
+*.o
+*.mod
+*.x
+*.exe
+*.dll
+*.lib
+*.sys
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+
+# Data files
+*.dat
+*.out
+!tests/fixtures/*.dat
+!tests/fixtures/*.out
+
+# Original FORTRAN source (reference only, keep in separate directory)
+multall-open_20260120.zip
+
+# Ruff
+.ruff_cache/
