@@ -21,6 +21,7 @@ dependencies = [
     "numpy>=2.2.0",
     "scipy>=1.15.0",
     "matplotlib>=3.10.0",
+    "cadquery>=2.4.0",  # 3D CAD 建模
 ]
 
 [project.optional-dependencies]
