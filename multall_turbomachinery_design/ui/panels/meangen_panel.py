@@ -336,7 +336,7 @@ class MeangenPanel(QWidget):
             from pathlib import Path
 
             output_dir = Path(dir_path)
-            self._solver.write_output(output_dir)
+            self._solver.write_outputs(output_dir)
 
             self._log_text.append_text(f"\n檔案已輸出到: {output_dir}")
             self.statusChanged.emit("檔案輸出完成")
