@@ -58,6 +58,14 @@ from .mixing_plane import (
     MixingPlaneType,
     NonReflectingBoundary,
 )
+from .postprocessing import (
+    FlowFieldExtractor,
+    FlowVisualizationData,
+    PerformanceCalculator,
+    PerformanceMetrics,
+    ResultExporter,
+    StagePerformance,
+)
 from .solver import (
     MultallSolver,
     create_simple_turbine_solver,
@@ -127,4 +135,11 @@ __all__ = [
     "InverseDesignSolver",
     "BladeRedesigner",
     "BladeDesignSection",
+    # 後處理
+    "PerformanceMetrics",
+    "StagePerformance",
+    "FlowVisualizationData",
+    "PerformanceCalculator",
+    "FlowFieldExtractor",
+    "ResultExporter",
 ]
