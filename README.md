@@ -68,9 +68,13 @@
 
 ### STAGEN - 葉片幾何模組 🚧 進行中
 
-- ⏳ 3D 葉片幾何生成
-- ⏳ 流線計算
-- ⏳ 網格生成
+- ✅ 數據結構定義（BladeProfile2D, StreamSurface3D, StackingParameters）
+- ✅ 2D 葉片截面生成（中弧線積分、厚度分佈、前後緣處理）
+- ✅ 3D 流線投影（子午線計算、R-THETA 轉換、質心計算）
+- ✅ 3D 堆疊變換（centroid, sweep, lean, tangential, axial）
+- ⏳ I/O 處理器（stagen.dat 讀取、stage_old.dat/stage_new.dat 寫入）
+- ⏳ 網格生成（周向和跨向網格擴張）
+- ⏳ 主求解器（完整 3D 葉片幾何生成流程）
 - ⏳ CAD 輸出（CadQuery 整合，待 Python 3.14 支援）
 
 ### MULTALL - 3D 求解器 🔮 規劃中
@@ -82,8 +86,8 @@
 
 ### 測試與覆蓋率
 
-- ✅ 46 個測試，全部通過
-- ✅ 74% 程式碼覆蓋率
+- ✅ 85 個測試，全部通過
+- ✅ 92% 程式碼覆蓋率
 - ✅ CI/CD 自動化
 
 ## 🚀 快速開始
