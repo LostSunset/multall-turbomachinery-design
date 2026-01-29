@@ -25,6 +25,7 @@ from multall_turbomachinery_design.ui.panels import (
     MultallPanel,
     StagenPanel,
 )
+from multall_turbomachinery_design.ui.project_manager import ProjectManager
 
 
 class MainWindow(QMainWindow):
@@ -35,6 +36,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("MULTALL 渦輪機械設計系統")
         self.setMinimumSize(1400, 900)
+
+        # 專案管理器
+        self._project_manager = ProjectManager()
 
         # 建立中央 widget
         self.central_widget = QWidget()
@@ -55,6 +59,9 @@ class MainWindow(QMainWindow):
 
         # 建立狀態列
         self.statusBar().showMessage("就緒")
+
+        # 建立新專案
+        self._project_manager.new_project()
 
     def _setup_panels(self) -> None:
         """設置模組面板。"""
@@ -94,6 +101,11 @@ class MainWindow(QMainWindow):
         save_action.setShortcut(QKeySequence.StandardKey.Save)
         save_action.triggered.connect(self._on_save_project)
         file_menu.addAction(save_action)
+
+        save_as_action = QAction("另存新檔(&A)...", self)
+        save_as_action.setShortcut(QKeySequence.StandardKey.SaveAs)
+        save_as_action.triggered.connect(self._on_save_project_as)
+        file_menu.addAction(save_as_action)
 
         file_menu.addSeparator()
 
@@ -145,20 +157,41 @@ class MainWindow(QMainWindow):
     @Slot()
     def _on_new_project(self) -> None:
         """處理新建專案。"""
-        reply = QMessageBox.question(
-            self,
-            "新建專案",
-            "確定要新建專案嗎？未儲存的變更將會遺失。",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            # TODO: 重置所有面板
-            self.statusBar().showMessage("已新建專案")
+        # 檢查是否有未儲存的變更
+        if self._project_manager.is_modified:
+            reply = QMessageBox.question(
+                self,
+                "新建專案",
+                "目前專案有未儲存的變更。確定要新建專案嗎？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+        # 建立新專案
+        self._project_manager.new_project()
+
+        # 重置所有面板
+        self._reset_all_panels()
+
+        self._update_window_title()
+        self.statusBar().showMessage("已新建專案")
 
     @Slot()
     def _on_open_project(self) -> None:
         """處理開啟專案。"""
         from PySide6.QtWidgets import QFileDialog
+
+        # 檢查是否有未儲存的變更
+        if self._project_manager.is_modified:
+            reply = QMessageBox.question(
+                self,
+                "開啟專案",
+                "目前專案有未儲存的變更。確定要開啟其他專案嗎？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
 
         file_path, _ = QFileDialog.getOpenFileName(
             self,
@@ -167,12 +200,46 @@ class MainWindow(QMainWindow):
             "MULTALL 專案 (*.mtproj);;所有檔案 (*.*)",
         )
         if file_path:
-            # TODO: 載入專案
-            self.statusBar().showMessage(f"已開啟: {file_path}")
+            try:
+                data = self._project_manager.load(file_path)
+
+                # 載入各面板資料
+                if data.meangen:
+                    self._load_panel_state(self._meangen_panel, data.meangen)
+                if data.stagen:
+                    self._load_panel_state(self._stagen_panel, data.stagen)
+                if data.multall:
+                    self._load_panel_state(self._multall_panel, data.multall)
+
+                self._update_window_title()
+                self.statusBar().showMessage(f"已開啟: {file_path}")
+
+            except Exception as e:
+                QMessageBox.critical(self, "錯誤", f"載入專案失敗:\n{e}")
 
     @Slot()
     def _on_save_project(self) -> None:
         """處理儲存專案。"""
+        # 如果沒有當前檔案，使用另存新檔
+        if self._project_manager.current_file is None:
+            self._on_save_project_as()
+            return
+
+        try:
+            # 收集各面板資料
+            self._collect_panel_states()
+
+            # 儲存專案
+            file_path = self._project_manager.save()
+            self._update_window_title()
+            self.statusBar().showMessage(f"已儲存: {file_path}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "錯誤", f"儲存專案失敗:\n{e}")
+
+    @Slot()
+    def _on_save_project_as(self) -> None:
+        """處理另存新檔。"""
         from PySide6.QtWidgets import QFileDialog
 
         file_path, _ = QFileDialog.getSaveFileName(
@@ -182,8 +249,57 @@ class MainWindow(QMainWindow):
             "MULTALL 專案 (*.mtproj);;所有檔案 (*.*)",
         )
         if file_path:
-            # TODO: 儲存專案
-            self.statusBar().showMessage(f"已儲存: {file_path}")
+            try:
+                # 收集各面板資料
+                self._collect_panel_states()
+
+                # 儲存專案
+                saved_path = self._project_manager.save(file_path)
+                self._update_window_title()
+                self.statusBar().showMessage(f"已儲存: {saved_path}")
+
+            except Exception as e:
+                QMessageBox.critical(self, "錯誤", f"儲存專案失敗:\n{e}")
+
+    def _collect_panel_states(self) -> None:
+        """收集各面板的狀態。"""
+        # 從各面板獲取狀態
+        if hasattr(self._meangen_panel, "get_state"):
+            self._project_manager.update_meangen(self._meangen_panel.get_state())
+        if hasattr(self._stagen_panel, "get_state"):
+            self._project_manager.update_stagen(self._stagen_panel.get_state())
+        if hasattr(self._multall_panel, "get_state"):
+            self._project_manager.update_multall(self._multall_panel.get_state())
+
+    def _load_panel_state(self, panel: QWidget, state: dict) -> None:
+        """載入面板狀態。
+
+        Args:
+            panel: 面板元件
+            state: 狀態資料
+        """
+        if hasattr(panel, "set_state"):
+            panel.set_state(state)
+
+    def _reset_all_panels(self) -> None:
+        """重置所有面板。"""
+        if hasattr(self._meangen_panel, "reset"):
+            self._meangen_panel.reset()
+        if hasattr(self._stagen_panel, "reset"):
+            self._stagen_panel.reset()
+        if hasattr(self._multall_panel, "reset"):
+            self._multall_panel.reset()
+
+    def _update_window_title(self) -> None:
+        """更新視窗標題。"""
+        title = "MULTALL 渦輪機械設計系統"
+        if self._project_manager.has_project and self._project_manager.data:
+            name = self._project_manager.data.metadata.name
+            if name:
+                title = f"{name} - {title}"
+            if self._project_manager.is_modified:
+                title = f"*{title}"
+        self.setWindowTitle(title)
 
     @Slot()
     def _on_reset_params(self) -> None:

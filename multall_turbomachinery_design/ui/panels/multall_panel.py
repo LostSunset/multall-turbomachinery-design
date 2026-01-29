@@ -336,3 +336,48 @@ class MultallPanel(QWidget):
         """更新進度條。"""
         if total > 0:
             self._progress.setValue(int(current / total * 100))
+
+    def get_state(self) -> dict:
+        """獲取面板狀態（用於專案儲存）。
+
+        Returns:
+            包含所有參數值的字典
+        """
+        return self._param_form.get_all_values()
+
+    def set_state(self, state: dict) -> None:
+        """設置面板狀態（用於專案載入）。
+
+        Args:
+            state: 參數值字典
+        """
+        for group_name, group_values in state.items():
+            group = self._param_form.get_group(group_name)
+            if group and isinstance(group_values, dict):
+                for key, value in group_values.items():
+                    try:
+                        group.set_value(key, value)
+                    except Exception:
+                        pass  # 忽略無效的參數
+
+    def reset(self) -> None:
+        """重置面板到初始狀態。"""
+        # 重置求解器參數
+        solver_group = self._param_form.get_group("solver")
+        if solver_group:
+            solver_group.set_value("max_iterations", 5000)
+            solver_group.set_value("convergence", 1e-6)
+            solver_group.set_value("cfl", 0.5)
+
+        # 重置黏性參數
+        viscous_group = self._param_form.get_group("viscous")
+        if viscous_group:
+            viscous_group.set_value("viscous_model", 0)
+            viscous_group.set_value("turbulence_model", 0)
+
+        # 重置 UI 狀態
+        self._progress.setValue(0)
+        self._residual_display.clear_data()
+        self._log_text.clear_text()
+        self._is_running = False
+        self.statusChanged.emit("參數已重置")

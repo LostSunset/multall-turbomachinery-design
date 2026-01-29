@@ -347,3 +347,30 @@ class MeangenPanel(QWidget):
     def get_solver(self) -> MeanLineSolver | None:
         """取得求解器實例。"""
         return self._solver
+
+    def get_state(self) -> dict:
+        """獲取面板狀態（用於專案儲存）。
+
+        Returns:
+            包含所有參數值的字典
+        """
+        return self._param_form.get_all_values()
+
+    def set_state(self, state: dict) -> None:
+        """設置面板狀態（用於專案載入）。
+
+        Args:
+            state: 參數值字典
+        """
+        for group_name, group_values in state.items():
+            group = self._param_form.get_group(group_name)
+            if group and isinstance(group_values, dict):
+                for key, value in group_values.items():
+                    try:
+                        group.set_value(key, value)
+                    except Exception:
+                        pass  # 忽略無效的參數
+
+    def reset(self) -> None:
+        """重置面板到初始狀態。"""
+        self._on_reset_clicked()

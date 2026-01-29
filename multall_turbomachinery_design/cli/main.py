@@ -146,6 +146,12 @@ def _add_stagen_parser(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         help="僅生成網格，不輸出幾何文件",
     )
+    stagen_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="顯示詳細輸出",
+    )
 
 
 def _add_plot_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -386,12 +392,135 @@ def run_stagen(args: Namespace) -> int:
     Returns:
         退出碼
     """
-    print(f"讀取配置: {args.input}")
-    print("STAGEN 命令行介面開發中...")
-    print(f"輸出目錄: {args.output}")
+    import json
+    from pathlib import Path
 
-    # TODO: 實作 STAGEN CLI
-    return 0
+    from multall_turbomachinery_design.stagen import StagenSolver
+    from multall_turbomachinery_design.stagen.data_structures import (
+        StagenConfig,
+        ThicknessParameters,
+    )
+
+    input_path = args.input
+    output_dir = Path(args.output) if args.output else Path("./stagen_output")
+
+    print("STAGEN - 葉片幾何生成")
+    print("=" * 50)
+    print(f"輸入文件: {input_path}")
+    print(f"輸出目錄: {output_dir}")
+    print()
+
+    try:
+        # 判斷輸入格式
+        if input_path.suffix.lower() == ".json":
+            # JSON 格式配置
+            print("讀取 JSON 配置...")
+            with open(input_path, encoding="utf-8") as f:
+                config_data = json.load(f)
+
+            # 構建配置
+            blade_data = config_data.get("blade", {})
+            thickness_data = config_data.get("thickness", {})
+
+            config = StagenConfig(
+                title=config_data.get("title", "STAGEN Calculation"),
+                n_sections=blade_data.get("n_sections", 5),
+            )
+
+            # 設置厚度參數
+            if thickness_data:
+                config.thickness = ThicknessParameters(
+                    tk_max=thickness_data.get("tk_max", 0.08),
+                    xtk_max=thickness_data.get("xtk_max", 0.45),
+                    tk_le=thickness_data.get("tk_le", 0.02),
+                    tk_te=thickness_data.get("tk_te", 0.005),
+                )
+
+            # 創建求解器
+            solver = StagenSolver(config)
+
+        else:
+            # stagen.dat 格式
+            print("讀取 stagen.dat 格式...")
+            solver = StagenSolver.from_input_file(input_path)
+
+        # 執行幾何生成
+        print("\n生成葉片幾何...")
+
+        # 如果有配置中有葉片排定義，生成幾何
+        if solver.config.blade_rows:
+            for i, row in enumerate(solver.config.blade_rows):
+                print(f"  處理葉片排 {i + 1}...")
+
+            # 運行求解器
+            solver.run()
+
+            # 輸出文件
+            print(f"\n寫入輸出文件到: {output_dir}")
+            solver.write_outputs(output_dir)
+
+            print("\n葉片幾何生成完成！")
+            print(f"  輸出目錄: {output_dir}")
+
+        else:
+            # 沒有葉片排定義時，生成示例
+            print("  配置中沒有葉片排定義，生成示例幾何...")
+
+            # 使用簡單的葉片排創建助手
+            from multall_turbomachinery_design.stagen import create_simple_blade_row
+
+            # 創建簡單葉片排（用於示例）
+            _ = create_simple_blade_row(
+                inlet_angle=45.0,
+                outlet_angle=-45.0,
+                r_hub=0.3,
+                r_tip=0.4,
+                axial_chord=0.05,
+                n_blades=30,
+            )
+
+            # 輸出結果
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            # 保存配置到 JSON
+            config_out = output_dir / "stagen_config.json"
+            with open(config_out, "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "title": solver.config.title,
+                        "n_sections": solver.config.n_sections,
+                        "blade_row": {
+                            "inlet_angle": 45.0,
+                            "outlet_angle": -45.0,
+                            "r_hub": 0.3,
+                            "r_tip": 0.4,
+                            "axial_chord": 0.05,
+                            "n_blades": 30,
+                        },
+                    },
+                    f,
+                    indent=2,
+                    ensure_ascii=False,
+                )
+
+            print("\n示例葉片幾何生成完成！")
+            print(f"  配置已保存到: {config_out}")
+
+        return 0
+
+    except FileNotFoundError:
+        print(f"錯誤: 輸入文件不存在: {input_path}")
+        return 1
+    except json.JSONDecodeError as e:
+        print(f"錯誤: JSON 解析失敗: {e}")
+        return 1
+    except Exception as e:
+        print(f"錯誤: {e}")
+        import traceback
+
+        if args.verbose if hasattr(args, "verbose") else False:
+            traceback.print_exc()
+        return 1
 
 
 def run_plot(args: Namespace) -> int:

@@ -275,3 +275,47 @@ class StagenPanel(QWidget):
             QMessageBox.information(self, "完成", f"檔案已輸出到:\n{dir_path}")
         except Exception as e:
             QMessageBox.critical(self, "輸出錯誤", str(e))
+
+    def get_state(self) -> dict:
+        """獲取面板狀態（用於專案儲存）。
+
+        Returns:
+            包含所有參數值的字典
+        """
+        return self._param_form.get_all_values()
+
+    def set_state(self, state: dict) -> None:
+        """設置面板狀態（用於專案載入）。
+
+        Args:
+            state: 參數值字典
+        """
+        for group_name, group_values in state.items():
+            group = self._param_form.get_group(group_name)
+            if group and isinstance(group_values, dict):
+                for key, value in group_values.items():
+                    try:
+                        group.set_value(key, value)
+                    except Exception:
+                        pass  # 忽略無效的參數
+
+    def reset(self) -> None:
+        """重置面板到初始狀態。"""
+        # 重置參數為預設值
+        blade_group = self._param_form.get_group("blade")
+        if blade_group:
+            blade_group.set_value("n_sections", 5)
+            blade_group.set_value("n_chord", 30)
+            blade_group.set_value("n_span", 11)
+
+        thickness_group = self._param_form.get_group("thickness")
+        if thickness_group:
+            thickness_group.set_value("tk_max", 0.08)
+            thickness_group.set_value("xtk_max", 0.45)
+            thickness_group.set_value("tk_le", 0.02)
+            thickness_group.set_value("tk_te", 0.005)
+
+        # 清除結果
+        self._coord_table.clear_data()
+        self._log_text.clear_text()
+        self.statusChanged.emit("參數已重置")
