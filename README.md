@@ -52,6 +52,40 @@
 - ✅ 蒸汽性質查表
 - ✅ 逆向設計
 
+## 📈 實現進度
+
+### MEANGEN - 平均線設計模組 ✅ 完成
+
+- ✅ 數據結構定義（MeangenConfig, StageDesign, VelocityTriangle）
+- ✅ 氣體性質計算（完美氣體和蒸汽性質）
+- ✅ 速度三角形計算（Type A/B 輸入）
+- ✅ 流表面生成（軸向流和混流）
+- ✅ 葉片幾何生成（厚度分布、角度分布、Zweifel 係數）
+- ✅ I/O 處理器（meangen.in 讀取、stagen.dat/meangen.out 寫入）
+- ✅ 主求解器（完整平均線設計流程）
+- ✅ 使用示例（examples/meangen_example.py）
+- ⏳ 圖形介面整合
+
+### STAGEN - 葉片幾何模組 🚧 進行中
+
+- ⏳ 3D 葉片幾何生成
+- ⏳ 流線計算
+- ⏳ 網格生成
+- ⏳ CAD 輸出（CadQuery 整合，待 Python 3.14 支援）
+
+### MULTALL - 3D 求解器 🔮 規劃中
+
+- ⏳ Navier-Stokes 求解器
+- ⏳ 混合平面模型
+- ⏳ 逆向設計
+- ⏳ 後處理工具
+
+### 測試與覆蓋率
+
+- ✅ 46 個測試，全部通過
+- ✅ 74% 程式碼覆蓋率
+- ✅ CI/CD 自動化
+
 ## 🚀 快速開始
 
 ### 系統需求
@@ -78,16 +112,56 @@ source .venv314/bin/activate  # Linux/Mac
 uv pip install -e ".[dev]"
 ```
 
-### 執行
+### 執行示例
 
 ```bash
-# 啟動圖形介面
-python main.py
+# 執行 MEANGEN 示例（包含渦輪和壓縮機設計）
+python examples/meangen_example.py
 
-# 或執行特定模組
-python -m multall_turbomachinery_design.meangen
-python -m multall_turbomachinery_design.stagen
-python -m multall_turbomachinery_design.multall
+# 示例包括：
+# - 單級軸向渦輪設計
+# - 單級軸向壓縮機設計
+# - 三級軸向渦輪設計
+# - 輸出檔案寫入示例
+```
+
+### 程式化使用
+
+```python
+from multall_turbomachinery_design.meangen import MeanLineSolver
+from multall_turbomachinery_design.meangen.data_structures import (
+    MeangenConfig, StageDesign, FlowType, MachineType,
+    GasProperties, InputType
+)
+
+# 創建渦輪配置
+config = MeangenConfig(
+    machine_type=MachineType.TURBINE,
+    flow_type=FlowType.AXIAL,
+    gas=GasProperties(rgas=287.5, gamma=1.4, poin=1.0, toin=1200.0),
+    nstages=1,
+    rpm=10000.0,
+    mass_flow=10.0,
+    design_radius=0.3,
+)
+
+# 添加級設計
+stage = StageDesign(
+    stage_number=1,
+    input_type=InputType.TYPE_A,
+    phi=0.6,        # 流量係數
+    psi=2.0,        # 負荷係數
+    reaction=0.5,   # 50% 反應度
+    r_design=0.3,
+    efficiency=0.90,
+)
+config.stages.append(stage)
+
+# 求解
+solver = MeanLineSolver(config)
+performance = solver.run(output_dir="output")
+
+print(f"功率: {abs(performance['power']):.2f} kW")
 ```
 
 ## 📁 專案結構
