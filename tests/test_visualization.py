@@ -146,14 +146,14 @@ class TestFlowPlotter:
         """創建流場數據。"""
         x = np.linspace(0, 1, 50)
         y = np.linspace(0, 1, 40)
-        X, Y = np.meshgrid(x, y)
+        x_grid, y_grid = np.meshgrid(x, y)
 
         # 簡單的流場
-        u = np.ones_like(X) * 100
-        v = np.sin(np.pi * Y) * 10
-        p = 101325 - 1000 * X
+        u = np.ones_like(x_grid) * 100
+        v = np.sin(np.pi * y_grid) * 10
+        p = 101325 - 1000 * x_grid
 
-        return {"x": X, "y": Y, "u": u, "v": v, "p": p}
+        return {"x": x_grid, "y": y_grid, "u": u, "v": v, "p": p}
 
     def test_plot_contour(self, flow_data: dict) -> None:
         """測試等值線繪圖。"""

@@ -35,7 +35,7 @@ class TestCADAvailability:
 
 # 當 CadQuery 可用時執行的測試
 try:
-    import cadquery
+    import cadquery  # noqa: F401
 
     CADQUERY_AVAILABLE = True
 except ImportError:

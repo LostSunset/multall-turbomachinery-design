@@ -6,9 +6,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -355,13 +355,6 @@ class BladeCADExporter:
         # 確保有足夠的點
         if len(points) < 3:
             raise CADExportError(f"截面點數不足: {len(points)}")
-
-        # 檢查是否需要閉合（首尾點距離）
-        dist = np.sqrt(
-            (points[0][0] - points[-1][0])**2 +
-            (points[0][1] - points[-1][1])**2 +
-            (points[0][2] - points[-1][2])**2
-        )
 
         # 使用 polyline 創建閉合線框
         try:
