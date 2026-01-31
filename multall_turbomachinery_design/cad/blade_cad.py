@@ -142,16 +142,19 @@ class BladeCADExporter:
                 points = []
                 for i in range(len(section.x)):
                     pt = (float(section.x[i]), float(section.y[i]))
-                    if not points or (abs(pt[0] - points[-1][0]) > 1e-8 or
-                                      abs(pt[1] - points[-1][1]) > 1e-8):
+                    if not points or (
+                        abs(pt[0] - points[-1][0]) > 1e-8 or abs(pt[1] - points[-1][1]) > 1e-8
+                    ):
                         points.append(pt)
 
                 if len(points) < 3:
                     raise CADExportError(f"截面點數不足: {len(points)}")
 
                 # 確保閉合
-                if (abs(points[0][0] - points[-1][0]) > 1e-8 or
-                    abs(points[0][1] - points[-1][1]) > 1e-8):
+                if (
+                    abs(points[0][0] - points[-1][0]) > 1e-8
+                    or abs(points[0][1] - points[-1][1]) > 1e-8
+                ):
                     points.append(points[0])
 
                 # 創建截面面
@@ -225,12 +228,14 @@ class BladeCADExporter:
             y = y_hub + frac * (y_tip - y_hub)
             z = np.full_like(x, r)
 
-            sections.append(BladeSection(
-                span_fraction=frac,
-                x=x,
-                y=y,
-                z=z,
-            ))
+            sections.append(
+                BladeSection(
+                    span_fraction=frac,
+                    x=x,
+                    y=y,
+                    z=z,
+                )
+            )
 
         return self.create_blade_from_sections(sections)
 
@@ -345,11 +350,15 @@ class BladeCADExporter:
         for i in range(len(section.x)):
             pt = (float(section.x[i]), float(section.y[i]), float(section.z[i]))
             # 避免重複點
-            if not points or np.sqrt(
-                (pt[0] - points[-1][0])**2 +
-                (pt[1] - points[-1][1])**2 +
-                (pt[2] - points[-1][2])**2
-            ) > 1e-6:
+            if (
+                not points
+                or np.sqrt(
+                    (pt[0] - points[-1][0]) ** 2
+                    + (pt[1] - points[-1][1]) ** 2
+                    + (pt[2] - points[-1][2]) ** 2
+                )
+                > 1e-6
+            ):
                 points.append(pt)
 
         # 確保有足夠的點

@@ -372,9 +372,7 @@ class MeanLineSolver:
             # 渦輪整體效率
             if len(stage_efficiencies) > 0:
                 # 使用總功和等熵總功計算
-                total_dho_is = sum(
-                    stage.dho_is for stage in self.config.stages if stage.dho_is > 0
-                )
+                total_dho_is = sum(stage.dho_is for stage in self.config.stages if stage.dho_is > 0)
                 if total_dho_is > 0:
                     overall_efficiency = total_work / total_dho_is
                 else:
@@ -384,9 +382,7 @@ class MeanLineSolver:
         else:
             # 壓縮機整體效率
             if len(stage_efficiencies) > 0:
-                total_dho_is = sum(
-                    stage.dho_is for stage in self.config.stages if stage.dho_is > 0
-                )
+                total_dho_is = sum(stage.dho_is for stage in self.config.stages if stage.dho_is > 0)
                 if total_work > 0:
                     overall_efficiency = total_dho_is / abs(total_work)
                 else:
@@ -494,34 +490,38 @@ class MeanLineSolver:
                 tri = stage.inlet_triangle
                 # 計算絕對速度和相對速度
                 v = math.sqrt(tri.vm**2 + tri.vtheta**2)
-                w = math.sqrt(tri.vm**2 + (tri.vtheta - tri.u)**2)
-                velocity_triangles.append({
-                    "stage": stage_num,
-                    "station": "轉子進口",
-                    "vx": tri.vm,
-                    "vt": tri.vtheta,
-                    "v": v,
-                    "alpha": tri.alpha,
-                    "w": w,
-                    "beta": tri.beta,
-                })
+                w = math.sqrt(tri.vm**2 + (tri.vtheta - tri.u) ** 2)
+                velocity_triangles.append(
+                    {
+                        "stage": stage_num,
+                        "station": "轉子進口",
+                        "vx": tri.vm,
+                        "vt": tri.vtheta,
+                        "v": v,
+                        "alpha": tri.alpha,
+                        "w": w,
+                        "beta": tri.beta,
+                    }
+                )
 
             # 轉子出口
             if hasattr(stage, "outlet_triangle") and stage.outlet_triangle:
                 tri = stage.outlet_triangle
                 # 計算絕對速度和相對速度
                 v = math.sqrt(tri.vm**2 + tri.vtheta**2)
-                w = math.sqrt(tri.vm**2 + (tri.vtheta - tri.u)**2)
-                velocity_triangles.append({
-                    "stage": stage_num,
-                    "station": "轉子出口",
-                    "vx": tri.vm,
-                    "vt": tri.vtheta,
-                    "v": v,
-                    "alpha": tri.alpha,
-                    "w": w,
-                    "beta": tri.beta,
-                })
+                w = math.sqrt(tri.vm**2 + (tri.vtheta - tri.u) ** 2)
+                velocity_triangles.append(
+                    {
+                        "stage": stage_num,
+                        "station": "轉子出口",
+                        "vx": tri.vm,
+                        "vt": tri.vtheta,
+                        "v": v,
+                        "alpha": tri.alpha,
+                        "w": w,
+                        "beta": tri.beta,
+                    }
+                )
 
         performance["velocity_triangles"] = velocity_triangles
 
