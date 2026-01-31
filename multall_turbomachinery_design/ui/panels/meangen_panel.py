@@ -65,6 +65,7 @@ class MeangenPanel(QWidget):
     def _setup_ui(self) -> None:
         """設置 UI 元件。"""
         layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
 
         # 使用 splitter 分割左右區域
         splitter = QSplitter(self)
@@ -78,51 +79,164 @@ class MeangenPanel(QWidget):
         left_layout.addWidget(self._param_form)
 
         # 機器參數
-        machine_group = self._param_form.add_group("machine", "機器參數")
+        machine_group = self._param_form.add_group(
+            "machine",
+            "機器參數",
+            tooltip="定義渦輪機械的基本配置",
+        )
         machine_group.add_combo(
             "machine_type",
             "機器類型:",
             ["渦輪", "壓縮機"],
             current=0,
+            tooltip="選擇設計的渦輪機械類型\n渦輪: 將流體能量轉換為機械功\n壓縮機: 提升流體壓力",
         )
         machine_group.add_combo(
             "flow_type",
             "流動類型:",
             ["軸流", "混流", "徑向流"],
             current=0,
+            tooltip="選擇流動方向類型\n軸流: 流體沿軸向流動\n混流: 流體同時有軸向和徑向分量\n徑向流: 流體主要沿徑向流動",
         )
-        machine_group.add_int("n_stages", "級數:", value=1, minimum=1, maximum=20)
-        machine_group.add_float("rpm", "轉速:", value=10000.0, suffix="rpm")
-        machine_group.add_float("mass_flow", "質量流率:", value=10.0, suffix="kg/s")
-        machine_group.add_float("design_radius", "設計半徑:", value=0.3, suffix="m")
+        machine_group.add_int(
+            "n_stages",
+            "級數:",
+            value=1,
+            minimum=1,
+            maximum=20,
+            tooltip="渦輪機械的總級數 (1-20)",
+        )
+        machine_group.add_float(
+            "rpm",
+            "轉速:",
+            value=10000.0,
+            minimum=100.0,
+            maximum=100000.0,
+            suffix="rpm",
+            tooltip="轉子轉速 (每分鐘轉數)",
+        )
+        machine_group.add_float(
+            "mass_flow",
+            "質量流率:",
+            value=10.0,
+            minimum=0.01,
+            maximum=1000.0,
+            suffix="kg/s",
+            tooltip="工作流體的質量流率",
+        )
+        machine_group.add_float(
+            "design_radius",
+            "設計半徑:",
+            value=0.3,
+            minimum=0.01,
+            maximum=10.0,
+            suffix="m",
+            tooltip="平均線設計的參考半徑 (通常為平均半徑)",
+        )
 
         # 氣體參數
-        gas_group = self._param_form.add_group("gas", "氣體參數")
-        gas_group.add_float("gamma", "比熱比 γ:", value=1.4, minimum=1.0, maximum=2.0)
-        gas_group.add_float("rgas", "氣體常數 R:", value=287.05, suffix="J/(kg·K)")
-        gas_group.add_float("poin", "入口總壓:", value=1.0, suffix="bar")
-        gas_group.add_float("toin", "入口總溫:", value=1200.0, suffix="K")
+        gas_group = self._param_form.add_group(
+            "gas",
+            "氣體參數",
+            tooltip="定義工作流體的熱力學性質",
+        )
+        gas_group.add_float(
+            "gamma",
+            "比熱比 γ:",
+            value=1.4,
+            minimum=1.0,
+            maximum=2.0,
+            tooltip="等熵指數 (cp/cv)\n空氣: 1.4\n燃氣: 1.33",
+        )
+        gas_group.add_float(
+            "rgas",
+            "氣體常數 R:",
+            value=287.05,
+            minimum=100.0,
+            maximum=1000.0,
+            suffix="J/(kg·K)",
+            tooltip="理想氣體常數\n空氣: 287.05 J/(kg·K)",
+        )
+        gas_group.add_float(
+            "poin",
+            "入口總壓:",
+            value=1.0,
+            minimum=0.01,
+            maximum=100.0,
+            suffix="bar",
+            tooltip="入口滯止壓力",
+        )
+        gas_group.add_float(
+            "toin",
+            "入口總溫:",
+            value=1200.0,
+            minimum=200.0,
+            maximum=2000.0,
+            suffix="K",
+            tooltip="入口滯止溫度",
+        )
 
         # 級設計參數
-        stage_group = self._param_form.add_group("stage", "級設計參數")
+        stage_group = self._param_form.add_group(
+            "stage",
+            "級設計參數",
+            tooltip="定義每級的氣動設計參數",
+        )
         stage_group.add_combo(
             "input_type",
             "輸入類型:",
             ["Type A (φ, ψ, R)", "Type B (α1, α2, α3)"],
             current=0,
+            tooltip="參數輸入方式\nType A: 使用無因次係數 (推薦)\nType B: 使用絕對流動角度",
         )
-        stage_group.add_float("phi", "流量係數 φ:", value=0.6, minimum=0.1, maximum=2.0)
-        stage_group.add_float("psi", "負荷係數 ψ:", value=2.0, minimum=0.1, maximum=5.0)
-        stage_group.add_float("reaction", "反應度 R:", value=0.5, minimum=0.0, maximum=1.0)
-        stage_group.add_float("efficiency", "等熵效率:", value=0.90, minimum=0.5, maximum=1.0)
+        stage_group.add_float(
+            "phi",
+            "流量係數 φ:",
+            value=0.6,
+            minimum=0.1,
+            maximum=2.0,
+            tooltip="φ = Vx / U\n軸向速度與葉尖速度之比\n典型值: 0.4-0.8",
+        )
+        stage_group.add_float(
+            "psi",
+            "負荷係數 ψ:",
+            value=2.0,
+            minimum=0.1,
+            maximum=5.0,
+            tooltip="ψ = Δh0 / U²\n焓變與葉尖速度平方之比\n渦輪典型值: 1.5-2.5\n壓縮機典型值: 0.3-0.5",
+        )
+        stage_group.add_float(
+            "reaction",
+            "反應度 R:",
+            value=0.5,
+            minimum=0.0,
+            maximum=1.0,
+            tooltip="轉子靜焓升與級靜焓升之比\n50% 反應度設計是最常見的選擇",
+        )
+        stage_group.add_float(
+            "efficiency",
+            "等熵效率:",
+            value=0.90,
+            minimum=0.5,
+            maximum=1.0,
+            tooltip="設計點的等熵效率\n典型值: 0.88-0.92",
+        )
 
         self._param_form.add_stretch()
 
         # 按鈕列
         button_layout = QHBoxLayout()
+
         self._run_btn = QPushButton("運行計算")
+        self._run_btn.setProperty("primary", True)
+        self._run_btn.setToolTip("執行平均線設計計算 (F5)")
+
         self._reset_btn = QPushButton("重置參數")
+        self._reset_btn.setToolTip("將所有參數重置為預設值")
+
         self._export_btn = QPushButton("輸出檔案")
+        self._export_btn.setToolTip("將計算結果輸出為 STAGEN 輸入檔案")
+
         button_layout.addWidget(self._run_btn)
         button_layout.addWidget(self._reset_btn)
         button_layout.addWidget(self._export_btn)
@@ -140,12 +254,14 @@ class MeangenPanel(QWidget):
         right_layout.addWidget(perf_group)
 
         # 速度三角形
-        self._triangle_table = ResultTable("速度三角形")
-        self._triangle_table.set_headers(["級", "站", "Vx", "Vt", "V", "α (°)", "W", "β (°)"])
+        self._triangle_table = ResultTable("速度三角形", show_export=True)
+        self._triangle_table.set_headers(
+            ["級", "站", "Vx (m/s)", "Vt (m/s)", "V (m/s)", "α (°)", "W (m/s)", "β (°)"]
+        )
         right_layout.addWidget(self._triangle_table)
 
         # 日誌輸出
-        self._log_text = ResultText("計算日誌")
+        self._log_text = ResultText("計算日誌", show_export=True)
         right_layout.addWidget(self._log_text)
 
         splitter.addWidget(right_widget)
@@ -171,14 +287,16 @@ class MeangenPanel(QWidget):
         """處理運行按鈕點擊。"""
         try:
             self._log_text.clear_text()
-            self._log_text.append_text("開始計算...\n")
+            self._log_text.append_info("開始計算...")
             self.statusChanged.emit("計算中...")
 
             # 建立配置
             config = self._create_config()
-            self._log_text.append_text(f"機器類型: {config.machine_type.name}\n")
-            self._log_text.append_text(f"流動類型: {config.flow_type.name}\n")
-            self._log_text.append_text(f"級數: {config.nstages}\n")
+            self._log_text.append_text(f"機器類型: {config.machine_type.name}")
+            self._log_text.append_text(f"流動類型: {config.flow_type.name}")
+            self._log_text.append_text(f"級數: {config.nstages}")
+            self._log_text.append_text(f"轉速: {config.rpm:.0f} rpm")
+            self._log_text.append_text(f"質量流率: {config.mass_flow:.2f} kg/s")
 
             # 建立求解器
             self._solver = MeanLineSolver(config)
@@ -189,12 +307,12 @@ class MeangenPanel(QWidget):
             # 顯示結果
             self._display_results(result)
 
-            self._log_text.append_text("\n計算完成！")
+            self._log_text.append_success("\n計算完成！")
             self.statusChanged.emit("計算完成")
             self.calculationFinished.emit(result)
 
         except Exception as e:
-            self._log_text.append_text(f"\n錯誤: {e}")
+            self._log_text.append_error(f"\n錯誤: {e}")
             self.statusChanged.emit("計算錯誤")
             QMessageBox.critical(self, "計算錯誤", str(e))
 
@@ -253,14 +371,22 @@ class MeangenPanel(QWidget):
     def _display_results(self, result: dict) -> None:
         """顯示計算結果。"""
         # 性能摘要
+        power = abs(result.get("power", 0))
         perf_data = {
-            "功率 (kW)": abs(result.get("power", 0)) / 1000,
+            "功率 (kW)": power / 1000,
             "總壓比": result.get("pressure_ratio", 1.0),
             "總溫比": result.get("temperature_ratio", 1.0),
             "等熵效率": result.get("efficiency", 0.0),
             "質量流率 (kg/s)": result.get("mass_flow", 0.0),
         }
         self._perf_display.set_data(perf_data)
+
+        # 顯示日誌
+        self._log_text.append_text("")
+        self._log_text.append_info("=== 性能結果 ===")
+        self._log_text.append_text(f"功率: {power / 1000:.2f} kW")
+        self._log_text.append_text(f"總壓比: {result.get('pressure_ratio', 1.0):.4f}")
+        self._log_text.append_text(f"等熵效率: {result.get('efficiency', 0.0):.4f}")
 
         # 速度三角形
         self._triangle_table.clear_data()
@@ -338,10 +464,11 @@ class MeangenPanel(QWidget):
             output_dir = Path(dir_path)
             self._solver.write_outputs(output_dir)
 
-            self._log_text.append_text(f"\n檔案已輸出到: {output_dir}")
+            self._log_text.append_success(f"\n檔案已輸出到: {output_dir}")
             self.statusChanged.emit("檔案輸出完成")
             QMessageBox.information(self, "完成", f"檔案已輸出到:\n{output_dir}")
         except Exception as e:
+            self._log_text.append_error(f"\n輸出錯誤: {e}")
             QMessageBox.critical(self, "輸出錯誤", str(e))
 
     def get_solver(self) -> MeanLineSolver | None:

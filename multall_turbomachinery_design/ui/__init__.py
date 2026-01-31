@@ -7,6 +7,7 @@
 - 參數輸入與驗證
 - 結果視覺化
 - 檔案管理
+- 專業的視覺樣式系統
 """
 
 from __future__ import annotations
@@ -16,6 +17,14 @@ from multall_turbomachinery_design.ui.panels import (
     MeangenPanel,
     MultallPanel,
     StagenPanel,
+)
+from multall_turbomachinery_design.ui.styles import (
+    ColorPalette,
+    StyleManager,
+    ThemeMode,
+    apply_style,
+    get_current_palette,
+    set_theme,
 )
 from multall_turbomachinery_design.ui.widgets import (
     FloatSpinBox,
@@ -27,6 +36,7 @@ from multall_turbomachinery_design.ui.widgets import (
 )
 
 __all__: list[str] = [
+    "ColorPalette",
     "FloatSpinBox",
     "IntSpinBox",
     "MainWindow",
@@ -37,5 +47,10 @@ __all__: list[str] = [
     "ResultTable",
     "ResultText",
     "StagenPanel",
+    "StyleManager",
+    "ThemeMode",
+    "apply_style",
+    "get_current_palette",
     "main",
+    "set_theme",
 ]

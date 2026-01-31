@@ -365,19 +365,38 @@ class MultallPanel(QWidget):
         # 重置求解器參數
         solver_group = self._param_form.get_group("solver")
         if solver_group:
-            solver_group.set_value("max_iterations", 5000)
+            solver_group.set_value("max_iterations", 10000)
             solver_group.set_value("convergence", 1e-6)
             solver_group.set_value("cfl", 0.5)
+            solver_group.set_value("time_scheme", 3)  # SCREE
 
         # 重置黏性參數
         viscous_group = self._param_form.get_group("viscous")
         if viscous_group:
-            viscous_group.set_value("viscous_model", 0)
-            viscous_group.set_value("turbulence_model", 0)
+            viscous_group.set_value("viscous_model", 1)  # 混合長度
+            viscous_group.set_value("reynolds", 1e6)
+            viscous_group.set_value("turbulent_intensity", 0.05)
+
+        # 重置邊界條件
+        bc_group = self._param_form.get_group("boundary")
+        if bc_group:
+            bc_group.set_value("inlet_p0", 101325.0)
+            bc_group.set_value("inlet_t0", 1200.0)
+            bc_group.set_value("inlet_alpha", 0.0)
+            bc_group.set_value("outlet_p", 50000.0)
+            bc_group.set_value("omega", 1000.0)
+
+        # 重置混合平面參數
+        mixing_group = self._param_form.get_group("mixing")
+        if mixing_group:
+            mixing_group.set_value("mixing_type", 0)
+            mixing_group.set_value("relaxation", 0.5)
 
         # 重置 UI 狀態
         self._progress.setValue(0)
-        self._residual_display.clear_data()
+        self._perf_display.clear_data()
+        self._conv_table.clear_data()
+        self._station_table.clear_data()
         self._log_text.clear_text()
         self._is_running = False
         self.statusChanged.emit("參數已重置")

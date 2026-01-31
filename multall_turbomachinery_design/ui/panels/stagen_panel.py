@@ -50,6 +50,7 @@ class StagenPanel(QWidget):
     def _setup_ui(self) -> None:
         """設置 UI 元件。"""
         layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
 
         # 使用 splitter 分割左右區域
         splitter = QSplitter(self)
@@ -63,10 +64,35 @@ class StagenPanel(QWidget):
         left_layout.addWidget(self._param_form)
 
         # 葉片幾何參數
-        blade_group = self._param_form.add_group("blade", "葉片幾何")
-        blade_group.add_int("n_blades", "葉片數:", value=50, minimum=10, maximum=200)
-        blade_group.add_float("chord", "弦長:", value=0.05, minimum=0.001, maximum=1.0, suffix="m")
-        blade_group.add_float("pitch", "節距:", value=0.03, minimum=0.001, maximum=1.0, suffix="m")
+        blade_group = self._param_form.add_group(
+            "blade", "葉片幾何", tooltip="定義葉片的基本幾何參數"
+        )
+        blade_group.add_int(
+            "n_blades",
+            "葉片數:",
+            value=50,
+            minimum=10,
+            maximum=200,
+            tooltip="葉片排中的葉片總數",
+        )
+        blade_group.add_float(
+            "chord",
+            "弦長:",
+            value=0.05,
+            minimum=0.001,
+            maximum=1.0,
+            suffix="m",
+            tooltip="葉片中弦長度",
+        )
+        blade_group.add_float(
+            "pitch",
+            "節距:",
+            value=0.03,
+            minimum=0.001,
+            maximum=1.0,
+            suffix="m",
+            tooltip="相鄰葉片間的周向距離",
+        )
         blade_group.add_float(
             "max_thickness",
             "最大厚度比:",
@@ -129,10 +155,20 @@ class StagenPanel(QWidget):
 
         # 按鈕列
         button_layout = QHBoxLayout()
+
         self._load_btn = QPushButton("載入檔案")
+        self._load_btn.setToolTip("載入現有的 STAGEN 輸入檔案")
+
         self._gen_btn = QPushButton("生成幾何")
+        self._gen_btn.setProperty("primary", True)
+        self._gen_btn.setToolTip("根據當前參數生成葉片幾何 (F5)")
+
         self._export_btn = QPushButton("輸出檔案")
+        self._export_btn.setToolTip("將生成的幾何輸出為 MULTALL 網格檔案")
+
         self._cad_btn = QPushButton("輸出 CAD")
+        self._cad_btn.setToolTip("將葉片幾何輸出為 CAD 格式 (STEP/STL)")
+
         button_layout.addWidget(self._load_btn)
         button_layout.addWidget(self._gen_btn)
         button_layout.addWidget(self._export_btn)
@@ -154,14 +190,14 @@ class StagenPanel(QWidget):
         right_layout.addWidget(geom_group)
 
         # 截面數據
-        self._section_table = ResultTable("葉片截面")
+        self._section_table = ResultTable("葉片截面", show_export=True)
         self._section_table.set_headers(
             ["K", "半徑 (m)", "弦長 (m)", "入口角 (°)", "出口角 (°)", "安裝角 (°)"]
         )
         right_layout.addWidget(self._section_table)
 
         # 日誌輸出
-        self._log_text = ResultText("生成日誌")
+        self._log_text = ResultText("生成日誌", show_export=True)
         right_layout.addWidget(self._log_text)
 
         splitter.addWidget(right_widget)
@@ -260,12 +296,16 @@ class StagenPanel(QWidget):
 
                 # 上下表面
                 x_c = np.linspace(0.001, 1, n_pts // 2)
-                y_t = 5 * t * (
-                    0.2969 * np.sqrt(x_c)
-                    - 0.1260 * x_c
-                    - 0.3516 * x_c**2
-                    + 0.2843 * x_c**3
-                    - 0.1015 * x_c**4
+                y_t = (
+                    5
+                    * t
+                    * (
+                        0.2969 * np.sqrt(x_c)
+                        - 0.1260 * x_c
+                        - 0.3516 * x_c**2
+                        + 0.2843 * x_c**3
+                        - 0.1015 * x_c**4
+                    )
                 )
 
                 x_upper = chord_k * x_c
@@ -287,14 +327,16 @@ class StagenPanel(QWidget):
 
                 z = np.full_like(x, r)
 
-                self._generated_sections.append({
-                    "span": span,
-                    "radius": r,
-                    "chord": chord_k,
-                    "x": x_rot,
-                    "y": y_rot,
-                    "z": z,
-                })
+                self._generated_sections.append(
+                    {
+                        "span": span,
+                        "radius": r,
+                        "chord": chord_k,
+                        "x": x_rot,
+                        "y": y_rot,
+                        "z": z,
+                    }
+                )
 
                 self._section_table.add_row(
                     [
@@ -362,8 +404,7 @@ class StagenPanel(QWidget):
             QMessageBox.warning(
                 self,
                 "CAD 功能不可用",
-                "CAD 模組未安裝。\n\n"
-                "安裝方式: pip install multall-turbomachinery-design[cad]",
+                "CAD 模組未安裝。\n\n安裝方式: pip install multall-turbomachinery-design[cad]",
             )
             return
 
